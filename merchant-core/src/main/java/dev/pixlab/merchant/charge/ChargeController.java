@@ -4,6 +4,7 @@ import dev.pixlab.contracts.pix.Valor;
 import dev.pixlab.merchant.payment.Payment;
 import dev.pixlab.merchant.payment.PaymentRepository;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,7 +51,7 @@ class ChargeController {
     }
 
     private ChargeResponse toResponse(Charge charge) {
-        var e2eIds = payments.findByChargeIdOrderByPaidAt(charge.getId()).stream().map(Payment::getE2eId).toList();
+        var e2eIds = payments.findByChargeIdOrderByPaidAt(charge.getId()).stream().map(Payment::getE2eId).filter(Objects::nonNull).toList();
         return new ChargeResponse(charge.getTxid(), Valor.format(charge.getAmount()), charge.getDescription(),
                 charge.getStatus(), charge.getExpiresAt().toString(), e2eIds);
     }

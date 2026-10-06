@@ -9,5 +9,6 @@
 | [0005](0005-java-25-e-spring-boot-4.md) | Java 25 e Spring Boot 4 | Aceita |
 | [0006](0006-hmac-e-pix-sem-cobranca.md) | Webhook com HMAC e Pix sem cobrança em suspense | Aceita |
 | [0007](0007-conciliacao-ajusta-para-o-psp.md) | Conciliação ajusta o ledger para o valor do PSP | Aceita |
+| [0008](0008-politica-de-valores-do-boleto.md) | Política de valores do boleto | Aceita |
 
 Modelo: contexto → decisão → consequências → alternativas consideradas.

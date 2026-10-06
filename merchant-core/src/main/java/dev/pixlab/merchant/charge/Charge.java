@@ -9,15 +9,30 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Version;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Entity
 public class Charge {
+
+    public static final ZoneId SAO_PAULO = ZoneId.of("America/Sao_Paulo");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    public enum Kind { PIX, BOLETO }
+
+    @Enumerated(EnumType.STRING)
+    private Kind kind = Kind.PIX;
+
     private String txid;
+    private String nossoNumero;
+    private LocalDate dueDate;
+    private BigDecimal finePct;
+    private BigDecimal interestPct;
+    private String barcode;
+    private String digitableLine;
     private BigDecimal amount;
     private String description;
 
@@ -41,12 +56,56 @@ public class Charge {
         this.expiresAt = expiresAt;
     }
 
+    public static Charge boleto(String txid, BigDecimal amount, String description, Instant createdAt,
+            LocalDate dueDate, BigDecimal finePct, BigDecimal interestPct) {
+        var charge = new Charge(txid, amount, description, createdAt, dueDate.plusDays(1).atStartOfDay(SAO_PAULO).toInstant());
+        charge.kind = Kind.BOLETO;
+        charge.dueDate = dueDate;
+        charge.finePct = finePct;
+        charge.interestPct = interestPct;
+        return charge;
+    }
+
+    public void registered(String nossoNumero, String barcode, String digitableLine) {
+        this.nossoNumero = nossoNumero;
+        this.barcode = barcode;
+        this.digitableLine = digitableLine;
+    }
+
     public Transition apply(ChargeEvent event) {
         var result = ChargeStateMachine.transition(status, amount, event);
         if (result instanceof Transition.Moved(var to)) {
             status = to;
         }
         return result;
+    }
+
+    public Kind getKind() {
+        return kind;
+    }
+
+    public String getNossoNumero() {
+        return nossoNumero;
+    }
+
+    public LocalDate getDueDate() {
+        return dueDate;
+    }
+
+    public BigDecimal getFinePct() {
+        return finePct;
+    }
+
+    public BigDecimal getInterestPct() {
+        return interestPct;
+    }
+
+    public String getBarcode() {
+        return barcode;
+    }
+
+    public String getDigitableLine() {
+        return digitableLine;
     }
 
     public Long getId() {

@@ -10,7 +10,7 @@ Cada fase termina com algo **demonstrável** e um teste que prova o que foi feit
 | F3 | Caos de entrega | 14 | ✅ |
 | F4 | Devoluções e MED | 10 | ✅ |
 | F5 | Conciliação Pix | 14 | ✅ |
-| F6 | Boleto + CNAB 240 | 18 | ⬜ |
+| F6 | Boleto + CNAB 240 | 18 | ✅ |
 | F7 | Observabilidade | 8 | ⬜ |
 | F8 | Vitrine de portfólio | 8 | ⬜ |
 

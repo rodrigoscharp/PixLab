@@ -20,6 +20,7 @@ public class Payment {
     @Column(name = "e2e_id")
     private String e2eId;
 
+    private String boletoRef;
     private BigDecimal amount;
     private Instant paidAt;
     private Instant createdAt;
@@ -32,6 +33,16 @@ public class Payment {
         this.amount = amount;
         this.paidAt = paidAt;
         this.createdAt = createdAt;
+    }
+
+    public static Payment boleto(Long chargeId, String boletoRef, BigDecimal amount, Instant paidAt, Instant createdAt) {
+        var payment = new Payment(chargeId, null, amount, paidAt, createdAt);
+        payment.boletoRef = boletoRef;
+        return payment;
+    }
+
+    public String getBoletoRef() {
+        return boletoRef;
     }
 
     public Long getId() {

@@ -1,5 +1,7 @@
 package dev.pixlab.merchant.charge;
 
+import dev.pixlab.merchant.charge.ChargeEvent.BoletoCancelled;
+import dev.pixlab.merchant.charge.ChargeEvent.BoletoPaid;
 import dev.pixlab.merchant.charge.ChargeEvent.PixReceived;
 import dev.pixlab.merchant.charge.ChargeEvent.RefundsSettled;
 import dev.pixlab.merchant.charge.Transition.Moved;
@@ -20,6 +22,17 @@ public final class ChargeStateMachine {
                 case EXPIRADA -> new Moved(ChargeStatus.DIVERGENTE);
                 default -> new Rejected("Pix recebido para cobrança em " + state);
             };
+            case BoletoPaid boleto -> switch (state) {
+                // Pago a maior também conclui; o excedente vira crédito a devolver (ADR-0008).
+                case ATIVA -> boleto.paid().compareTo(boleto.expected()) >= 0
+                        ? new Moved(ChargeStatus.CONCLUIDA)
+                        : new Moved(ChargeStatus.DIVERGENTE);
+                case EXPIRADA -> new Moved(ChargeStatus.DIVERGENTE);
+                default -> new Rejected("boleto pago de novo com cobrança em " + state);
+            };
+            case BoletoCancelled cancelled -> state == ChargeStatus.ATIVA
+                    ? new Moved(ChargeStatus.EXPIRADA)
+                    : new Rejected("baixa de boleto com cobrança em " + state);
             case RefundsSettled refunds -> switch (state) {
                 case CONCLUIDA, PARCIALMENTE_DEVOLVIDA, DEVOLVIDA -> {
                     var cmp = refunds.refunded().compareTo(chargeAmount);

@@ -184,6 +184,7 @@ Reaproveita o modelo do WalletCore. Contas mínimas:
 | `psp:pix:liquidar` | Ativo — valores a receber do PSP |
 | `merchant:receita` | Receita reconhecida |
 | `merchant:devolucoes` | Redutora de receita |
+| `banco:boleto:liquidar` | Ativo — valores de boleto a receber do banco |
 | `suspense:nao_identificado` | Valores recebidos sem cobrança correspondente |
 | `merchant:credito_a_devolver` | Pagamentos em duplicidade/a maior |
 
@@ -285,7 +286,7 @@ Justificativas em [ADR-0001](adr/0001-dois-servicos-separados.md), [ADR-0003](ad
 
 - **Fidelidade:** a especificação do BCB evolui; manter um teste de contrato contra o OpenAPI oficial evita divergência.
 - **Escopo do boleto:** CNAB 240 tem variações por banco; o PixLab segue o layout Febraban genérico.
-- **Política de pagamento a menor:** aceitar parcialmente ou rejeitar? Decidir em ADR na fase do boleto.
+- **Política de pagamento a menor:** resolvido no [ADR-0008](adr/0008-politica-de-valores-do-boleto.md): a menor fica divergente em suspense; a maior conclui e o excedente vira crédito a devolver.
 - **Autenticação do webhook:** resolvido com HMAC ([ADR-0006](adr/0006-hmac-e-pix-sem-cobranca.md)); mTLS fica como o equivalente de produção.
 
 ## 15. Referências

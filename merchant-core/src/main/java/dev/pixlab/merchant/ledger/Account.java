@@ -3,6 +3,7 @@ package dev.pixlab.merchant.ledger;
 /** Plano de contas mínimo (design doc, seção 6.3). */
 public enum Account {
     PSP_PIX_LIQUIDAR("psp:pix:liquidar"),
+    BANCO_BOLETO_LIQUIDAR("banco:boleto:liquidar"),
     RECEITA("merchant:receita"),
     DEVOLUCOES("merchant:devolucoes"),
     SUSPENSE_NAO_IDENTIFICADO("suspense:nao_identificado"),

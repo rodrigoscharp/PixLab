@@ -28,6 +28,7 @@ management:
 pixlab:
   psp:
     ispb: "12345678"
+    banco: "999"
   webhook:
     secret: ${PIXLAB_WEBHOOK_SECRET:pixlab-dev-secret}
   chaos:

@@ -123,7 +123,7 @@ class Reconciler {
                                   and (l.ref = p.e2e_id or l.ref like p.e2e_id || ':%' or l.ref = 'recon:' || p.e2e_id)),
                                'ALERTA', '{"detail":"pagamento sem Pix correspondente no extrato do PSP"}'::jsonb
                         from payment p
-                        where p.paid_at >= :inicio and p.paid_at < :fim
+                        where p.e2e_id is not null and p.paid_at >= :inicio and p.paid_at < :fim
                           and not exists (select 1 from recon_item i where i.run_id = :run and i.key = p.e2e_id)
                         on conflict (run_id, key) do nothing""")
                 .param("run", runId)

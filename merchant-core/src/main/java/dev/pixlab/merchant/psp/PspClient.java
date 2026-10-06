@@ -1,5 +1,7 @@
 package dev.pixlab.merchant.psp;
 
+import dev.pixlab.contracts.boleto.Boleto;
+import dev.pixlab.contracts.boleto.BoletoRequest;
 import dev.pixlab.contracts.pix.CobRequest;
 import dev.pixlab.contracts.pix.CobResponse;
 import dev.pixlab.contracts.pix.Devolucao;
@@ -27,6 +29,10 @@ public class PspClient {
 
     public CobResponse criarCob(String txid, CobRequest request) {
         return http.put().uri("/cob/{txid}", txid).body(request).retrieve().body(CobResponse.class);
+    }
+
+    public Boleto emitirBoleto(BoletoRequest request) {
+        return http.post().uri("/boletos").body(request).retrieve().body(Boleto.class);
     }
 
     public void configurarWebhook(String chave, String webhookUrl) {

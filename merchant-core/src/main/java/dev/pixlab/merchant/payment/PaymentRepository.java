@@ -11,6 +11,8 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     boolean existsByE2eId(String e2eId);
 
+    boolean existsByBoletoRef(String boletoRef);
+
     List<Payment> findByChargeIdOrderByPaidAt(Long chargeId);
 
     /** Lock na linha do pagamento: serializa devoluções concorrentes do mesmo Pix (invariante 3). */
