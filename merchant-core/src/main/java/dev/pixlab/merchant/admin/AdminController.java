@@ -3,6 +3,7 @@ package dev.pixlab.merchant.admin;
 import dev.pixlab.merchant.inbox.Inbox;
 import dev.pixlab.merchant.inbox.InboxStatus;
 import dev.pixlab.merchant.payment.ConsultaAtiva;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,6 +62,23 @@ class AdminController {
                 .query((rs, n) -> new PaymentView(rs.getString("e2e_id"), rs.getString("txid"),
                         rs.getBigDecimal("amount").toPlainString(), ledger))
                 .list();
+    }
+
+    /** Saldo líquido de devoluções de um Pix no ledger e o estado de cada devolução. */
+    @GetMapping("/refunds/{e2eId}")
+    Map<String, String> refunds(@PathVariable String e2eId) {
+        var result = new LinkedHashMap<String, String>();
+        result.put("devolucoes", jdbc.sql("""
+                        select coalesce(sum(debit - credit), 0) from ledger_entry
+                        where ref like ? and account = 'merchant:devolucoes'""")
+                .param(e2eId + ":%").query(BigDecimal.class).single().setScale(2).toPlainString());
+        jdbc.sql("""
+                        select r.refund_id, r.status from refund r join payment p on p.id = r.payment_id
+                        where p.e2e_id = ? order by r.id""")
+                .param(e2eId)
+                .query((rs, n) -> Map.entry(rs.getString("refund_id"), rs.getString("status")))
+                .list().forEach(e -> result.put(e.getKey(), e.getValue()));
+        return result;
     }
 
     @PostMapping("/consulta-ativa")

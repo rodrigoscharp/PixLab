@@ -1,6 +1,7 @@
 package dev.pixlab.merchant.charge;
 
 import dev.pixlab.merchant.charge.ChargeEvent.PixReceived;
+import dev.pixlab.merchant.charge.ChargeEvent.RefundsSettled;
 import dev.pixlab.merchant.charge.Transition.Moved;
 import dev.pixlab.merchant.charge.Transition.Rejected;
 import java.math.BigDecimal;
@@ -18,6 +19,17 @@ public final class ChargeStateMachine {
                         : new Moved(ChargeStatus.DIVERGENTE);
                 case EXPIRADA -> new Moved(ChargeStatus.DIVERGENTE);
                 default -> new Rejected("Pix recebido para cobrança em " + state);
+            };
+            case RefundsSettled refunds -> switch (state) {
+                case CONCLUIDA, PARCIALMENTE_DEVOLVIDA, DEVOLVIDA -> {
+                    var cmp = refunds.refunded().compareTo(chargeAmount);
+                    if (cmp > 0) {
+                        yield new Rejected("devolvido " + refunds.refunded() + " excede " + chargeAmount);
+                    }
+                    yield new Moved(refunds.refunded().signum() == 0 ? ChargeStatus.CONCLUIDA
+                            : cmp == 0 ? ChargeStatus.DEVOLVIDA : ChargeStatus.PARCIALMENTE_DEVOLVIDA);
+                }
+                default -> new Rejected("devolução para cobrança em " + state);
             };
         };
     }

@@ -75,6 +75,11 @@ public class ChaosEngine {
             delay = between(rng(ChaosScenario.PIX_DELAY, key + ":delay"), cfg.minDelay(), cfg.maxDelay());
             log.info("[PIX-DELAY] {} atraso {}", key, delay);
         }
+        if (happens(ChaosScenario.PIX_OOO, key)) {
+            var cfg = config(ChaosScenario.PIX_OOO);
+            delay = delay.plus(cfg.maxDelay() == null ? Duration.ofMinutes(30) : cfg.maxDelay());
+            log.info("[PIX-OOO] {} crédito atrasado {}; devoluções chegam antes", key, delay);
+        }
         var fakeFailures = 0;
         if (happens(ChaosScenario.PIX_RETRY, key)) {
             fakeFailures = orDefault(config(ChaosScenario.PIX_RETRY).failedAttempts(), 2);

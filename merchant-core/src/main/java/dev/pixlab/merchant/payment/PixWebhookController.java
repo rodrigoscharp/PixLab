@@ -36,7 +36,7 @@ class PixWebhookController {
             throw badRequest("lote de pix vazio");
         }
         webhook.pix().forEach(PixWebhookController::validate);
-        webhook.pix().forEach(pix -> inbox.offer(PixCreditHandler.SOURCE, pix.endToEndId(), json.writeValueAsString(pix)));
+        webhook.pix().forEach(pix -> PixEvents.offer(inbox, json, pix, pix.devolucoes() == null || pix.devolucoes().isEmpty()));
     }
 
     private static void validate(Pix pix) {

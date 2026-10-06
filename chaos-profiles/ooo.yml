@@ -1,0 +1,4 @@
+# Só PIX-OOO, sempre.
+seed: 1
+scenarios:
+  PIX-OOO: { probability: 1.0, maxDelay: PT30M }

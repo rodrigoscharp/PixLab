@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 import dev.pixlab.contracts.pix.Pix;
+import dev.pixlab.merchant.TestData;
 import dev.pixlab.merchant.TestcontainersConfiguration;
 import dev.pixlab.merchant.charge.Charge;
 import dev.pixlab.merchant.charge.ChargeRepository;
@@ -41,7 +42,7 @@ class ConsultaAtivaTests {
         var now = Instant.now();
         var txid = UUID.randomUUID().toString().replace("-", "");
         charges.save(new Charge(txid, new BigDecimal("33.00"), "perdido", now, now.plus(1, ChronoUnit.HOURS)));
-        var pix = new Pix(PixWebhookTests.e2eId(), txid, "33.00", now.toString(), null, List.of());
+        var pix = new Pix(TestData.e2eId(), txid, "33.00", now.toString(), null, List.of());
         given(psp.listarPix(any(), any())).willReturn(List.of(pix));
 
         var primeira = consulta.run(now.minusSeconds(60), now.plusSeconds(60));

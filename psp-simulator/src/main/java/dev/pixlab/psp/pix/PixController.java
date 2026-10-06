@@ -4,7 +4,9 @@ import dev.pixlab.contracts.pix.Pix;
 import dev.pixlab.contracts.pix.PixListResponse;
 import dev.pixlab.contracts.pix.PixListResponse.Paginacao;
 import dev.pixlab.contracts.pix.PixListResponse.Parametros;
+import dev.pixlab.psp.devolucao.DevolucaoRepository;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,9 +22,11 @@ class PixController {
     private static final int MAX_POR_PAGINA = 1000;
 
     private final PixRecebidoRepository extrato;
+    private final DevolucaoRepository devolucoes;
 
-    PixController(PixRecebidoRepository extrato) {
+    PixController(PixRecebidoRepository extrato, DevolucaoRepository devolucoes) {
         this.extrato = extrato;
+        this.devolucoes = devolucoes;
     }
 
     @GetMapping("/pix")
@@ -40,12 +44,17 @@ class PixController {
         return new PixListResponse(
                 new Parametros(inicio.toString(), fim.toString(),
                         new Paginacao(pagina, itens, page.getTotalPages(), page.getTotalElements())),
-                page.map(PixRecebido::toContract).getContent());
+                comDevolucoes(page.getContent()));
+    }
+
+    private List<Pix> comDevolucoes(List<PixRecebido> pix) {
+        var porE2eId = devolucoes.byE2eIds(pix.stream().map(PixRecebido::getEndToEndId).toList());
+        return pix.stream().map(p -> p.toContract(porE2eId.getOrDefault(p.getEndToEndId(), List.of()))).toList();
     }
 
     @GetMapping("/pix/{e2eId}")
     Pix consultar(@PathVariable String e2eId) {
-        return extrato.findById(e2eId).map(PixRecebido::toContract)
+        return extrato.findById(e2eId).map(p -> p.toContract(devolucoes.byE2eId(e2eId)))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "pix não encontrado: " + e2eId));
     }
 }

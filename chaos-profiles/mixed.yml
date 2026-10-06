@@ -1,4 +1,4 @@
-# Todos os cenários de entrega da F3 ao mesmo tempo, com probabilidades moderadas.
+# Cenários de entrega (F3) e de devolução (F4) ao mesmo tempo, com probabilidades moderadas.
 # Rode com: ./gradlew chaos --chaos-profile=mixed --seed=<n>
 seed: 42
 scenarios:
@@ -9,3 +9,5 @@ scenarios:
   PIX-RETRY:    { probability: 0.20, failedAttempts: 2 }
   PIX-UNKNOWN:  { probability: 0.10 }
   PIX-BAD-AUTH: { probability: 0.15 }
+  PIX-OOO:         { probability: 0.10, maxDelay: PT30M }
+  PIX-REFUND-FAIL: { probability: 0.25 }

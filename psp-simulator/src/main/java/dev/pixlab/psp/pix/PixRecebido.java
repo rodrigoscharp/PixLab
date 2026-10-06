@@ -1,5 +1,6 @@
 package dev.pixlab.psp.pix;
 
+import dev.pixlab.contracts.pix.Devolucao;
 import dev.pixlab.contracts.pix.Pix;
 import dev.pixlab.contracts.pix.Valor;
 import jakarta.persistence.Column;
@@ -21,22 +22,37 @@ public class PixRecebido implements Persistable<String> {
     private String endToEndId;
 
     private String txid;
+    private String chave;
     private BigDecimal valor;
     private Instant horario;
     private String infoPagador;
 
     protected PixRecebido() {}
 
-    public PixRecebido(String endToEndId, String txid, BigDecimal valor, Instant horario, String infoPagador) {
+    public PixRecebido(String endToEndId, String txid, String chave, BigDecimal valor, Instant horario,
+            String infoPagador) {
         this.endToEndId = endToEndId;
         this.txid = txid;
+        this.chave = chave;
         this.valor = valor;
         this.horario = horario;
         this.infoPagador = infoPagador;
     }
 
     public Pix toContract() {
-        return new Pix(endToEndId, txid, Valor.format(valor), horario.toString(), infoPagador, List.of());
+        return toContract(List.of());
+    }
+
+    public Pix toContract(List<Devolucao> devolucoes) {
+        return new Pix(endToEndId, txid, Valor.format(valor), horario.toString(), infoPagador, devolucoes);
+    }
+
+    public String getChave() {
+        return chave;
+    }
+
+    public BigDecimal getValor() {
+        return valor;
     }
 
     public String getEndToEndId() {

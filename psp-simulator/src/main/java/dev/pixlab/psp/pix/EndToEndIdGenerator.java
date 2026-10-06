@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Gera e2eIds no formato do SPI: {@code E} + ISPB (8) + {@code yyyyMMddHHmm} (UTC) + 11 alfanuméricos = 32 caracteres.
+ * Gera e2eIds (e rtrIds) no formato do SPI: {@code E} + ISPB (8) + {@code yyyyMMddHHmm} (UTC) + 11 alfanuméricos = 32 caracteres.
  */
 @Component
 public class EndToEndIdGenerator {
@@ -29,7 +29,16 @@ public class EndToEndIdGenerator {
     }
 
     public String gerar(Instant instante) {
-        var e2eId = new StringBuilder(32).append('E').append(ispb).append(MINUTO.format(instante));
+        return gerar('E', instante);
+    }
+
+    /** {@code D} + ... é o formato do rtrId de uma devolução. */
+    public String gerarRtrId(Instant instante) {
+        return gerar('D', instante);
+    }
+
+    private String gerar(char prefixo, Instant instante) {
+        var e2eId = new StringBuilder(32).append(prefixo).append(ispb).append(MINUTO.format(instante));
         for (int i = 0; i < SUFIXO; i++) {
             e2eId.append(ALFABETO.charAt(random.nextInt(ALFABETO.length())));
         }

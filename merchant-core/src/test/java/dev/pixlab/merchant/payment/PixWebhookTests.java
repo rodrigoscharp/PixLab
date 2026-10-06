@@ -4,12 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import dev.pixlab.contracts.pix.WebhookSignature;
+import dev.pixlab.merchant.TestData;
 import dev.pixlab.merchant.TestcontainersConfiguration;
 import dev.pixlab.merchant.charge.Charge;
 import dev.pixlab.merchant.charge.ChargeRepository;
 import dev.pixlab.merchant.charge.ChargeStatus;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -44,7 +44,7 @@ class PixWebhookTests {
     @Test
     void pixComValorCertoConcluiCobrancaELancaReceita() {
         var charge = novaCobranca("150.00");
-        var e2eId = e2eId();
+        var e2eId = TestData.e2eId();
 
         assertThat(webhook(e2eId, charge.getTxid(), "150.00")).hasStatusOk();
 
@@ -59,7 +59,7 @@ class PixWebhookTests {
     void pixComValorDiferenteDeixaCobrancaDivergente() {
         var charge = novaCobranca("150.00");
 
-        assertThat(webhook(e2eId(), charge.getTxid(), "149.99")).hasStatusOk();
+        assertThat(webhook(TestData.e2eId(), charge.getTxid(), "149.99")).hasStatusOk();
 
         awaitStatus(charge, ChargeStatus.DIVERGENTE);
         assertThat(mvc.get().uri("/ledger/balances")).hasStatusOk().bodyJson()
@@ -69,7 +69,7 @@ class PixWebhookTests {
     @Test
     void mesmoWebhookEmSequenciaCreditaUmaVez() {
         var charge = novaCobranca("80.00");
-        var e2eId = e2eId();
+        var e2eId = TestData.e2eId();
 
         for (int i = 0; i < 20; i++) {
             assertThat(webhook(e2eId, charge.getTxid(), "80.00")).hasStatusOk();
@@ -83,7 +83,7 @@ class PixWebhookTests {
 
     @Test
     void pixParaTxidDesconhecidoVaiParaSuspense() {
-        var e2eId = e2eId();
+        var e2eId = TestData.e2eId();
 
         assertThat(webhook(e2eId, "desconhecido000000000000000001", "10.00")).hasStatusOk();
 
@@ -96,12 +96,12 @@ class PixWebhookTests {
     @Test
     void webhookSemAssinaturaValidaERejeitadoAntesDaInbox() {
         var charge = novaCobranca("10.00");
-        var e2eId = e2eId();
-        var body = body(e2eId, charge.getTxid(), "10.00");
+        var e2eId = TestData.e2eId();
+        var body = TestData.webhookBody(e2eId, charge.getTxid(), "10.00");
 
         assertThat(post(body, false)).hasStatus(HttpStatus.UNAUTHORIZED);
         assertThat(mvc.post().uri("/webhook/pix").contentType(MediaType.APPLICATION_JSON).content(body)
-                .header(WebhookSignature.HEADER, sign(body.replace("10.00", "99.00")))).hasStatus(HttpStatus.UNAUTHORIZED);
+                .header(WebhookSignature.HEADER, TestData.sign(body.replace("10.00", "99.00")))).hasStatus(HttpStatus.UNAUTHORIZED);
 
         assertThat(jdbc.sql("select count(*) from webhook_inbox where event_key = ?").param(e2eId)
                 .query(Long.class).single()).isZero();
@@ -112,7 +112,7 @@ class PixWebhookTests {
         var e2eId = "E123";
 
         assertThat(webhook(e2eId, "qualquer", "10.00")).hasStatus4xxClientError();
-        assertThat(webhook(e2eId(), "qualquer", "10")).hasStatus4xxClientError();
+        assertThat(webhook(TestData.e2eId(), "qualquer", "10")).hasStatus4xxClientError();
 
         assertThat(jdbc.sql("select count(*) from webhook_inbox where event_key = ?").param(e2eId)
                 .query(Long.class).single()).isZero();
@@ -122,7 +122,7 @@ class PixWebhookTests {
     void eventoProcessadoPublicaNaOutbox() {
         var charge = novaCobranca("42.00");
 
-        assertThat(webhook(e2eId(), charge.getTxid(), "42.00")).hasStatusOk();
+        assertThat(webhook(TestData.e2eId(), charge.getTxid(), "42.00")).hasStatusOk();
 
         await().untilAsserted(() -> assertThat(jdbc.sql(
                         "select count(*) from outbox where aggregate_id = ? and published_at is not null")
@@ -148,28 +148,17 @@ class PixWebhookTests {
     }
 
     private MvcTestResult webhook(String e2eId, String txid, String valor) {
-        return post(body(e2eId, txid, valor), true);
+        return post(TestData.webhookBody(e2eId, txid, valor), true);
     }
 
     private MvcTestResult post(String body, boolean signed) {
         var request = mvc.post().uri("/webhook/pix").contentType(MediaType.APPLICATION_JSON).content(body);
         if (signed) {
-            request = request.header(WebhookSignature.HEADER, sign(body));
+            request = request.header(WebhookSignature.HEADER, TestData.sign(body));
         }
         return request.exchange();
     }
 
-    static String body(String e2eId, String txid, String valor) {
-        return """
-                {"pix":[{"endToEndId":"%s","txid":"%s","valor":"%s","horario":"2026-10-06T15:30:12.358Z",
-                 "infoPagador":"teste","devolucoes":[]}]}""".formatted(e2eId, txid, valor);
-    }
 
-    static String sign(String body) {
-        return WebhookSignature.sign("pixlab-dev-secret", body.getBytes(StandardCharsets.UTF_8));
-    }
 
-    static String e2eId() {
-        return "E12345678202610061530" + UUID.randomUUID().toString().replace("-", "").substring(0, 11);
-    }
 }

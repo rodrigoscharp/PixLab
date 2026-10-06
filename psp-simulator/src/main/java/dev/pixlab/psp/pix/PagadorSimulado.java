@@ -54,12 +54,12 @@ public class PagadorSimulado {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "cobrança expirada");
         }
         cob.concluir();
-        var pix = extrato.save(new PixRecebido(novoE2eId(agora), txid, cob.getValor(), agora, infoPagador))
+        var pix = extrato.save(new PixRecebido(novoE2eId(agora), txid, cob.getChave(), cob.getValor(), agora, infoPagador))
                 .toContract();
         webhooks.schedule(cob.getChave(), pix);
 
         if (chaos.happens(ChaosScenario.PIX_UNKNOWN, pix.endToEndId())) {
-            var semCobranca = extrato.save(new PixRecebido(novoE2eId(agora), txidAleatorio(), cob.getValor(), agora,
+            var semCobranca = extrato.save(new PixRecebido(novoE2eId(agora), txidAleatorio(), cob.getChave(), cob.getValor(), agora,
                     "sem cobrança")).toContract();
             log.info("[PIX-UNKNOWN] {} para txid inexistente {}", semCobranca.endToEndId(), semCobranca.txid());
             webhooks.schedule(cob.getChave(), semCobranca);

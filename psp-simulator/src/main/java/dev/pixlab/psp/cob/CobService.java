@@ -4,7 +4,7 @@ import dev.pixlab.contracts.pix.Calendario;
 import dev.pixlab.contracts.pix.CobRequest;
 import dev.pixlab.contracts.pix.CobResponse;
 import dev.pixlab.contracts.pix.Valor;
-import dev.pixlab.psp.pix.PixRecebido;
+import dev.pixlab.psp.devolucao.DevolucaoRepository;
 import dev.pixlab.psp.pix.PixRecebidoRepository;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -22,11 +22,13 @@ public class CobService {
 
     private final CobRepository cobs;
     private final PixRecebidoRepository extrato;
+    private final DevolucaoRepository devolucoes;
     private final Clock clock;
 
-    CobService(CobRepository cobs, PixRecebidoRepository extrato, Clock clock) {
+    CobService(CobRepository cobs, PixRecebidoRepository extrato, DevolucaoRepository devolucoes, Clock clock) {
         this.cobs = cobs;
         this.extrato = extrato;
+        this.devolucoes = devolucoes;
         this.clock = clock;
     }
 
@@ -63,7 +65,8 @@ public class CobService {
     }
 
     private CobResponse toResponse(Cob cob) {
-        var pix = extrato.findByTxidOrderByHorario(cob.getTxid()).stream().map(PixRecebido::toContract).toList();
+        var pix = extrato.findByTxidOrderByHorario(cob.getTxid()).stream()
+                .map(p -> p.toContract(devolucoes.byE2eId(p.getEndToEndId()))).toList();
         return new CobResponse(
                 cob.getTxid(),
                 cob.getStatus(),

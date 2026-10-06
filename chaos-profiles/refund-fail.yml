@@ -1,0 +1,4 @@
+# Só PIX-REFUND-FAIL, sempre.
+seed: 1
+scenarios:
+  PIX-REFUND-FAIL: { probability: 1.0 }

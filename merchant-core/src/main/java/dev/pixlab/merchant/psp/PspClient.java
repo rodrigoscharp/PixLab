@@ -2,6 +2,8 @@ package dev.pixlab.merchant.psp;
 
 import dev.pixlab.contracts.pix.CobRequest;
 import dev.pixlab.contracts.pix.CobResponse;
+import dev.pixlab.contracts.pix.Devolucao;
+import dev.pixlab.contracts.pix.DevolucaoRequest;
 import dev.pixlab.contracts.pix.Pix;
 import dev.pixlab.contracts.pix.PixListResponse;
 import dev.pixlab.contracts.pix.WebhookRequest;
@@ -29,6 +31,10 @@ public class PspClient {
 
     public void configurarWebhook(String chave, String webhookUrl) {
         http.put().uri("/webhook/{chave}", chave).body(new WebhookRequest(webhookUrl)).retrieve().toBodilessEntity();
+    }
+
+    public Devolucao solicitarDevolucao(String e2eId, String id, DevolucaoRequest request) {
+        return http.put().uri("/pix/{e2eId}/devolucao/{id}", e2eId, id).body(request).retrieve().body(Devolucao.class);
     }
 
     /** Todos os Pix recebidos em [inicio, fim), percorrendo as páginas. */

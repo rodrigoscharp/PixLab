@@ -4,11 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import dev.pixlab.contracts.pix.PixListResponse;
+import dev.pixlab.contracts.pix.Pix;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import org.springframework.core.ParameterizedTypeReference;
 
 /**
@@ -25,7 +29,29 @@ final class ChaosRun {
 
     record Report(String profile, long seed, int payments, int extrato) {}
 
+    record Paid(String txid, String e2eId, BigDecimal valor) {}
+
     private ChaosRun() {}
+
+    /**
+     * Deixa o tempo virtual do dispatcher passar até não sobrar entrega pendente (atrasos de horas e backoffs vencem
+     * em segundos), roda a consulta ativa (webhook é otimização: ela traz o que se perdeu) e espera a inbox esvaziar.
+     */
+    private static void settle(Lab lab, Instant inicio) {
+        await().atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(200)).until(() -> {
+            lab.pspApi.post().uri("/sim/clock/advance").body(Map.of("duration", "PT15M")).retrieve().toBodilessEntity();
+            return lab.pspApi.get().uri("/sim/webhook-deliveries").retrieve().body(Deliveries.class).pending() == 0;
+        });
+        lab.merchantApi.post().uri("/admin/consulta-ativa")
+                .body(Map.of("inicio", inicio.toString(), "fim", Instant.now().plusSeconds(1).toString()))
+                .retrieve().toBodilessEntity();
+        await().atMost(Duration.ofSeconds(30)).until(() -> lab.merchantApi.get().uri("/admin/inbox")
+                .retrieve().body(new ParameterizedTypeReference<Map<String, Long>>() {}).get("PENDING") == 0);
+    }
+
+    private static String status(Lab lab, String txid) {
+        return lab.merchantApi.get().uri("/charges/{txid}", txid).retrieve().body(ChargeResponse.class).status();
+    }
 
     static Report run(String profile, long seed, int payments) throws Exception {
         var lab = Lab.get();
@@ -36,32 +62,36 @@ final class ChaosRun {
 
         psp.put().uri("/sim/chaos/profiles/{name}?seed={seed}", profile, seed).retrieve().toBodilessEntity();
         var inicio = Instant.now().minusSeconds(1);
-        var paid = new ArrayList<String>();
+        var paid = new ArrayList<Paid>();
+        var random = new Random(seed);
         try {
             for (int i = 0; i < payments; i++) {
+                var valor = new BigDecimal("%d.%02d".formatted(10 + i, i % 100));
                 var charge = merchant.post().uri("/charges")
-                        .body(Map.of("valor", "%d.%02d".formatted(10 + i, i % 100), "descricao", "caos " + i))
+                        .body(Map.of("valor", valor.toPlainString(), "descricao", "caos " + i))
                         .retrieve().body(ChargeResponse.class);
-                psp.post().uri("/sim/cob/{txid}/pagamento", charge.txid()).retrieve().toBodilessEntity();
-                paid.add(charge.txid());
+                var pix = psp.post().uri("/sim/cob/{txid}/pagamento", charge.txid()).retrieve().body(Pix.class);
+                paid.add(new Paid(charge.txid(), pix.endToEndId(), valor));
+            }
+            settle(lab, inicio);
+
+            // Devoluções (F4): parte pedida pelo recebedor, parte via MED, sob o mesmo perfil de caos.
+            for (var p : paid) {
+                var roll = random.nextInt(4);
+                if (roll == 0 && "CONCLUIDA".equals(status(lab, p.txid()))) {
+                    merchant.post().uri("/charges/{txid}/refunds", p.txid())
+                            .body(Map.of("valor", p.valor().divide(BigDecimal.TWO, 2, RoundingMode.DOWN).toPlainString()))
+                            .retrieve().toBodilessEntity();
+                } else if (roll == 1) {
+                    psp.post().uri("/sim/pix/{e2e}/med", p.e2eId()).retrieve().toBodilessEntity();
+                }
             }
         } finally {
             psp.delete().uri("/sim/chaos").retrieve().toBodilessEntity();
         }
+        settle(lab, inicio);
 
-        // Tempo virtual do dispatcher: atrasos de horas e backoffs vencem em segundos.
-        await().atMost(Duration.ofSeconds(60)).pollInterval(Duration.ofMillis(200)).until(() -> {
-            psp.post().uri("/sim/clock/advance").body(Map.of("duration", "PT15M")).retrieve().toBodilessEntity();
-            return psp.get().uri("/sim/webhook-deliveries").retrieve().body(Deliveries.class).pending() == 0;
-        });
         var fim = Instant.now().plusSeconds(1);
-
-        // Webhook é otimização: a consulta ativa traz o que se perdeu.
-        merchant.post().uri("/admin/consulta-ativa").body(Map.of("inicio", inicio.toString(), "fim", fim.toString()))
-                .retrieve().toBodilessEntity();
-        await().atMost(Duration.ofSeconds(30)).until(() -> merchant.get().uri("/admin/inbox")
-                .retrieve().body(new ParameterizedTypeReference<Map<String, Long>>() {}).get("PENDING") == 0);
-
         var extrato = psp.get().uri("/pix?inicio={i}&fim={f}&paginacao.itensPorPagina=1000", inicio, fim)
                 .retrieve().body(PixListResponse.class).pix();
         assertThat(extrato).as("extrato do PSP").hasSizeGreaterThanOrEqualTo(payments);
@@ -74,9 +104,13 @@ final class ChaosRun {
             assertThat(views.getFirst().ledger()).as("lançamentos do e2eId %s (seed %d)", pix.endToEndId(), seed)
                     .hasSize(2);
         }
-        for (var txid : paid) {
-            var status = merchant.get().uri("/charges/{txid}", txid).retrieve().body(ChargeResponse.class).status();
-            assertThat(status).as("cobrança %s (seed %d)", txid, seed).isIn("CONCLUIDA", "DIVERGENTE");
+        for (var p : paid) {
+            assertThat(status(lab, p.txid())).as("cobrança %s (seed %d)", p.txid(), seed)
+                    .isIn("CONCLUIDA", "DIVERGENTE", "PARCIALMENTE_DEVOLVIDA", "DEVOLVIDA");
+            // Invariante 3: o que saiu em devoluções nunca passa do que entrou.
+            var refunded = new BigDecimal(merchant.get().uri("/admin/refunds/{e2e}", p.e2eId()).retrieve()
+                    .body(new ParameterizedTypeReference<Map<String, String>>() {}).get("devolucoes"));
+            assertThat(refunded).as("devolvido do e2eId %s (seed %d)", p.e2eId(), seed).isLessThanOrEqualTo(p.valor());
         }
         // Invariante 2: ledger balanceado.
         var total = merchant.get().uri("/ledger/balances").retrieve()

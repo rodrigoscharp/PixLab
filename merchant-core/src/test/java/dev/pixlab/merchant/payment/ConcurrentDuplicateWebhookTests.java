@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import dev.pixlab.contracts.pix.WebhookSignature;
+import dev.pixlab.merchant.TestData;
 import dev.pixlab.merchant.TestcontainersConfiguration;
 import dev.pixlab.merchant.charge.Charge;
 import dev.pixlab.merchant.charge.ChargeRepository;
@@ -49,11 +50,11 @@ class ConcurrentDuplicateWebhookTests {
         var now = Instant.now();
         var txid = UUID.randomUUID().toString().replace("-", "");
         charges.save(new Charge(txid, new BigDecimal("150.00"), "corrida", now, now.plus(1, ChronoUnit.HOURS)));
-        var e2eId = PixWebhookTests.e2eId();
-        var body = PixWebhookTests.body(e2eId, txid, "150.00");
+        var e2eId = TestData.e2eId();
+        var body = TestData.webhookBody(e2eId, txid, "150.00");
         var request = HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/webhook/pix"))
                 .header("Content-Type", "application/json")
-                .header(WebhookSignature.HEADER, PixWebhookTests.sign(body))
+                .header(WebhookSignature.HEADER, TestData.sign(body))
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 

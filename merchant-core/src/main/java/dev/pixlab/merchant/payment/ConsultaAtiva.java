@@ -52,9 +52,7 @@ public class ConsultaAtiva {
         var pix = psp.listarPix(inicio, fim);
         int injected = 0;
         for (var p : pix) {
-            if (inbox.offer(PixCreditHandler.SOURCE, p.endToEndId(), json.writeValueAsString(p))) {
-                injected++;
-            }
+            injected += PixEvents.offer(inbox, json, p, true);
         }
         if (injected > 0) {
             log.info("Consulta ativa [{} , {}): {} Pix no extrato, {} reinjetados", inicio, fim, pix.size(), injected);

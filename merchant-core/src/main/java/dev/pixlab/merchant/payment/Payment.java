@@ -34,7 +34,19 @@ public class Payment {
         this.createdAt = createdAt;
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public Long getChargeId() {
+        return chargeId;
+    }
+
     public String getE2eId() {
         return e2eId;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
     }
 }
