@@ -2,7 +2,7 @@ spring:
   application:
     name: psp-simulator
   datasource:
-    url: jdbc:postgresql://localhost:${PSP_DB_PORT:5433}/psp
+    url: jdbc:postgresql://localhost:${PSP_DB_PORT:5434}/psp
     username: pixlab
     password: pixlab
   jpa:
@@ -11,7 +11,7 @@ spring:
       ddl-auto: validate
 
 server:
-  port: ${PSP_PORT:8081}
+  port: ${PSP_PORT:8091}
 
 management:
   endpoints:

@@ -46,8 +46,8 @@ Requisitos: JDK 25 e Docker.
 
 ```bash
 docker compose up -d
-./gradlew :psp-simulator:bootRun   # http://localhost:8081/actuator/health
-./gradlew :merchant-core:bootRun   # http://localhost:8080/actuator/health
+./gradlew :psp-simulator:bootRun   # http://localhost:8091/actuator/health
+./gradlew :merchant-core:bootRun   # http://localhost:8090/actuator/health
 ./gradlew build                    # testes sobem Postgres via Testcontainers
 ```
 
@@ -55,10 +55,10 @@ Portas ocupadas na sua máquina? Sobrescreva por variável de ambiente (vale par
 
 | Variável | Padrão |
 |---|---|
-| `MERCHANT_PORT` | 8080 |
-| `PSP_PORT` | 8081 |
-| `MERCHANT_DB_PORT` | 5432 |
-| `PSP_DB_PORT` | 5433 |
+| `MERCHANT_PORT` | 8090 |
+| `PSP_PORT` | 8091 |
+| `MERCHANT_DB_PORT` | 5435 |
+| `PSP_DB_PORT` | 5434 |
 
 RabbitMQ: `5672`, painel em http://localhost:15672 (`pixlab` / `pixlab`).
 

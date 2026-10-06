@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: pixlab
       POSTGRES_PASSWORD: pixlab
     ports:
-      - "${MERCHANT_DB_PORT:-5432}:5432"
+      - "${MERCHANT_DB_PORT:-5435}:5432"
     volumes:
       - postgres-merchant:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
       POSTGRES_USER: pixlab
       POSTGRES_PASSWORD: pixlab
     ports:
-      - "${PSP_DB_PORT:-5433}:5432"
+      - "${PSP_DB_PORT:-5434}:5432"
     volumes:
       - postgres-psp:/var/lib/postgresql/data
     healthcheck:
