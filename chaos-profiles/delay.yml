@@ -1,0 +1,4 @@
+# Só PIX-DELAY, sempre.
+seed: 1
+scenarios:
+  PIX-DELAY: { probability: 1.0, minDelay: PT10M, maxDelay: PT2H }

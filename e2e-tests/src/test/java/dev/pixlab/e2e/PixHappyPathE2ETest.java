@@ -6,16 +6,13 @@ import static org.awaitility.Awaitility.await;
 import dev.pixlab.contracts.pix.CobResponse;
 import dev.pixlab.contracts.pix.CobStatus;
 import dev.pixlab.contracts.pix.Pix;
+import java.math.BigDecimal;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
-import org.testcontainers.postgresql.PostgreSQLContainer;
-import org.testcontainers.rabbitmq.RabbitMQContainer;
 
 /**
  * F1 — Pix caminho feliz, de ponta a ponta: recebedor cria a cobrança no PSP, o pagador simulado paga,
@@ -27,48 +24,20 @@ class PixHappyPathE2ETest {
 
     record BalancesResponse(Map<String, String> accounts, String total) {}
 
-    static final PostgreSQLContainer pspDb = new PostgreSQLContainer("postgres:16-alpine");
-    static final PostgreSQLContainer merchantDb = new PostgreSQLContainer("postgres:16-alpine");
-    static final RabbitMQContainer rabbit = new RabbitMQContainer("rabbitmq:4-management-alpine");
-
-    static ServiceProcess psp;
-    static ServiceProcess merchant;
     static RestClient pspApi;
     static RestClient merchantApi;
 
     @BeforeAll
     static void start() throws Exception {
-        pspDb.start();
-        merchantDb.start();
-        rabbit.start();
-
-        psp = ServiceProcess.start("psp-simulator", "pixlab.e2e.psp-jar", datasource(pspDb));
-
-        var merchantPort = ServiceProcess.freePort();
-        var merchantArgs = new ArrayList<>(datasource(merchantDb));
-        merchantArgs.add("--spring.rabbitmq.host=" + rabbit.getHost());
-        merchantArgs.add("--spring.rabbitmq.port=" + rabbit.getAmqpPort());
-        merchantArgs.add("--spring.rabbitmq.username=" + rabbit.getAdminUsername());
-        merchantArgs.add("--spring.rabbitmq.password=" + rabbit.getAdminPassword());
-        merchantArgs.add("--pixlab.psp.base-url=" + psp.baseUrl());
-        merchantArgs.add("--pixlab.psp.webhook-url=http://localhost:" + merchantPort + "/webhook");
-        merchant = ServiceProcess.start("merchant-core", "pixlab.e2e.merchant-jar", merchantArgs, merchantPort);
-
-        pspApi = RestClient.create(psp.baseUrl().toString());
-        merchantApi = RestClient.create(merchant.baseUrl().toString());
-    }
-
-    @AfterAll
-    static void stop() {
-        if (merchant != null) merchant.close();
-        if (psp != null) psp.close();
-        merchantDb.stop();
-        rabbit.stop();
-        pspDb.stop();
+        pspApi = Lab.get().pspApi;
+        merchantApi = Lab.get().merchantApi;
+        pspApi.delete().uri("/sim/chaos").retrieve().toBodilessEntity();
     }
 
     @Test
     void cobrancaCriadaEPagaFicaConcluidaComLedgerBalanceado() {
+        var before = merchantApi.get().uri("/ledger/balances").retrieve().body(BalancesResponse.class);
+
         var charge = merchantApi.post().uri("/charges")
                 .body(Map.of("valor", "150.00", "descricao", "Pedido #4821"))
                 .retrieve().body(ChargeResponse.class);
@@ -88,21 +57,18 @@ class PixHappyPathE2ETest {
                 c -> c.status().equals("CONCLUIDA"));
         assertThat(concluded.endToEndIds()).containsExactly(pix.endToEndId());
 
-        var balances = merchantApi.get().uri("/ledger/balances").retrieve().body(BalancesResponse.class);
-        assertThat(balances.total()).isEqualTo("0.00");
-        assertThat(balances.accounts())
-                .containsEntry("psp:pix:liquidar", "150.00")
-                .containsEntry("merchant:receita", "-150.00");
+        var after = merchantApi.get().uri("/ledger/balances").retrieve().body(BalancesResponse.class);
+        assertThat(after.total()).isEqualTo("0.00");
+        assertThat(delta(before, after, "psp:pix:liquidar")).isEqualByComparingTo("150.00");
+        assertThat(delta(before, after, "merchant:receita")).isEqualByComparingTo("-150.00");
 
         var cobFinal = pspApi.get().uri("/cob/{txid}", charge.txid()).retrieve().body(CobResponse.class);
         assertThat(cobFinal.status()).isEqualTo(CobStatus.CONCLUIDA);
         assertThat(cobFinal.pix()).extracting(Pix::endToEndId).containsExactly(pix.endToEndId());
     }
 
-    private static List<String> datasource(PostgreSQLContainer db) {
-        return List.of(
-                "--spring.datasource.url=" + db.getJdbcUrl(),
-                "--spring.datasource.username=" + db.getUsername(),
-                "--spring.datasource.password=" + db.getPassword());
+    static BigDecimal delta(BalancesResponse before, BalancesResponse after, String account) {
+        return new BigDecimal(after.accounts().getOrDefault(account, "0"))
+                .subtract(new BigDecimal(before.accounts().getOrDefault(account, "0")));
     }
 }

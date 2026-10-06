@@ -15,6 +15,7 @@ import dev.pixlab.merchant.inbox.Outcome;
 import dev.pixlab.merchant.ledger.Account;
 import dev.pixlab.merchant.ledger.Ledger;
 import dev.pixlab.merchant.outbox.Outbox;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -61,11 +62,11 @@ public class PixCreditHandler implements InboxEventHandler {
         if (payments.existsByE2eId(pix.endToEndId())) {
             return Outcome.APPLIED;
         }
-        var charge = charges.findByTxid(pix.txid()).orElse(null);
-        if (charge == null) {
-            return new Outcome.Quarantine("txid desconhecido: " + pix.txid());
-        }
         var amount = Valor.parse(pix.valor());
+        var charge = pix.txid() == null ? null : charges.findByTxid(pix.txid()).orElse(null);
+        if (charge == null) {
+            return creditWithoutCharge(pix, amount);
+        }
         return switch (charge.apply(new ChargeEvent.PixReceived(amount))) {
             case Transition.Rejected(var reason) -> new Outcome.Quarantine(reason);
             case Transition.Moved(var to) -> {
@@ -79,6 +80,20 @@ public class PixCreditHandler implements InboxEventHandler {
                 yield Outcome.APPLIED;
             }
         };
+    }
+
+    /**
+     * PIX-UNKNOWN: o dinheiro entrou de verdade, então nada de descarte silencioso. Vai para suspense, com
+     * pagamento sem cobrança e um evento de alerta; a conciliação o classifica como SEM_COBRANCA.
+     */
+    private Outcome creditWithoutCharge(Pix pix, BigDecimal amount) {
+        payments.save(new Payment(null, pix.endToEndId(), amount, Instant.parse(pix.horario()), clock.instant()));
+        ledger.post(pix.endToEndId(), List.of(debit(Account.PSP_PIX_LIQUIDAR, amount),
+                credit(Account.SUSPENSE_NAO_IDENTIFICADO, amount)));
+        outbox.add("payment", pix.endToEndId(), "pix.sem_cobranca", Map.of(
+                "endToEndId", pix.endToEndId(), "txid", String.valueOf(pix.txid()), "valor", pix.valor()));
+        log.warn("Pix {} sem cobrança (txid {}); {} em suspense", pix.endToEndId(), pix.txid(), pix.valor());
+        return Outcome.APPLIED;
     }
 
     // Valor que não bate com a cobrança fica em suspense até análise (a conciliação da F5 abre o caso).

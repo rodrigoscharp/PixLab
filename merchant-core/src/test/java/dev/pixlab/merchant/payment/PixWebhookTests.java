@@ -3,11 +3,13 @@ package dev.pixlab.merchant.payment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import dev.pixlab.contracts.pix.WebhookSignature;
 import dev.pixlab.merchant.TestcontainersConfiguration;
 import dev.pixlab.merchant.charge.Charge;
 import dev.pixlab.merchant.charge.ChargeRepository;
 import dev.pixlab.merchant.charge.ChargeStatus;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -16,9 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
+import org.springframework.test.web.servlet.assertj.MvcTestResult;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest
@@ -78,13 +82,29 @@ class PixWebhookTests {
     }
 
     @Test
-    void pixParaTxidDesconhecidoNaoCredita() {
+    void pixParaTxidDesconhecidoVaiParaSuspense() {
         var e2eId = e2eId();
 
         assertThat(webhook(e2eId, "desconhecido000000000000000001", "10.00")).hasStatusOk();
 
-        await().untilAsserted(() -> assertThat(inboxStatus(e2eId)).isEqualTo("QUARANTINED"));
-        assertThat(payments.existsByE2eId(e2eId)).isFalse();
+        await().untilAsserted(() -> assertThat(inboxStatus(e2eId)).isEqualTo("PROCESSED"));
+        assertThat(payments.existsByE2eId(e2eId)).isTrue();
+        assertThat(jdbc.sql("select account from ledger_entry where ref = ? and credit > 0").param(e2eId)
+                .query(String.class).single()).isEqualTo("suspense:nao_identificado");
+    }
+
+    @Test
+    void webhookSemAssinaturaValidaERejeitadoAntesDaInbox() {
+        var charge = novaCobranca("10.00");
+        var e2eId = e2eId();
+        var body = body(e2eId, charge.getTxid(), "10.00");
+
+        assertThat(post(body, false)).hasStatus(HttpStatus.UNAUTHORIZED);
+        assertThat(mvc.post().uri("/webhook/pix").contentType(MediaType.APPLICATION_JSON).content(body)
+                .header(WebhookSignature.HEADER, sign(body.replace("10.00", "99.00")))).hasStatus(HttpStatus.UNAUTHORIZED);
+
+        assertThat(jdbc.sql("select count(*) from webhook_inbox where event_key = ?").param(e2eId)
+                .query(Long.class).single()).isZero();
     }
 
     @Test
@@ -127,11 +147,26 @@ class PixWebhookTests {
         return charges.findByTxid(charge.getTxid()).orElseThrow().getStatus();
     }
 
-    private org.springframework.test.web.servlet.assertj.MvcTestResult webhook(String e2eId, String txid, String valor) {
-        var body = """
+    private MvcTestResult webhook(String e2eId, String txid, String valor) {
+        return post(body(e2eId, txid, valor), true);
+    }
+
+    private MvcTestResult post(String body, boolean signed) {
+        var request = mvc.post().uri("/webhook/pix").contentType(MediaType.APPLICATION_JSON).content(body);
+        if (signed) {
+            request = request.header(WebhookSignature.HEADER, sign(body));
+        }
+        return request.exchange();
+    }
+
+    static String body(String e2eId, String txid, String valor) {
+        return """
                 {"pix":[{"endToEndId":"%s","txid":"%s","valor":"%s","horario":"2026-10-06T15:30:12.358Z",
                  "infoPagador":"teste","devolucoes":[]}]}""".formatted(e2eId, txid, valor);
-        return mvc.post().uri("/webhook/pix").contentType(MediaType.APPLICATION_JSON).content(body).exchange();
+    }
+
+    static String sign(String body) {
+        return WebhookSignature.sign("pixlab-dev-secret", body.getBytes(StandardCharsets.UTF_8));
     }
 
     static String e2eId() {

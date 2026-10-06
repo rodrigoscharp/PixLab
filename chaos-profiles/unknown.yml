@@ -1,0 +1,4 @@
+# Só PIX-UNKNOWN, sempre.
+seed: 1
+scenarios:
+  PIX-UNKNOWN: { probability: 1.0 }

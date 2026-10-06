@@ -1,0 +1,4 @@
+# Só PIX-DUP, sempre.
+seed: 1
+scenarios:
+  PIX-DUP: { probability: 1.0, copies: 5 }

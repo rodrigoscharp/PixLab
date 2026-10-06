@@ -9,7 +9,7 @@ Testes com falhas aleatórias são úteis para encontrar bugs, mas inúteis se o
 - O `psp-simulator` recebe um **perfil de caos** (lista de cenários do catálogo com probabilidades/parâmetros) e uma **seed**.
 - Toda decisão aleatória (duplicar? atrasar quanto? em que ordem?) usa um `RandomGenerator` derivado da seed + id do evento.
 - O tempo é abstraído por um `Clock` injetável; atrasos longos ("2 horas") são simulados avançando o relógio, não esperando.
-- Todo teste que falha imprime a seed e o perfil; `./gradlew chaos --seed=<n> --profile=<p>` reproduz a execução.
+- Todo teste que falha imprime a seed e o perfil; `./gradlew chaos --chaos-profile=<p> --seed=<n>` reproduz a execução.
 - Perfis ficam versionados em `chaos-profiles/*.yml`.
 
 ## Consequências

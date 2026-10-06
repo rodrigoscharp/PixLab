@@ -1,0 +1,4 @@
+# Só PIX-DUP-CONC, sempre.
+seed: 1
+scenarios:
+  PIX-DUP-CONC: { probability: 1.0, copies: 50 }

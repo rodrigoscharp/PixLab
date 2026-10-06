@@ -1,0 +1,4 @@
+# Só PIX-LOST, sempre.
+seed: 1
+scenarios:
+  PIX-LOST: { probability: 1.0 }

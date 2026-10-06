@@ -6,6 +6,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.springframework.data.domain.Persistable;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.List;
 /** Linha do extrato do PSP. */
 @Entity
 @Table(name = "pix")
-public class PixRecebido {
+public class PixRecebido implements Persistable<String> {
 
     @Id
     @Column(name = "e2e_id")
@@ -40,5 +41,16 @@ public class PixRecebido {
 
     public String getEndToEndId() {
         return endToEndId;
+    }
+
+    // Sempre insert: um e2eId repetido tem que falhar na PK, nunca sobrescrever um Pix do extrato.
+    @Override
+    public String getId() {
+        return endToEndId;
+    }
+
+    @Override
+    public boolean isNew() {
+        return true;
     }
 }

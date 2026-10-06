@@ -7,5 +7,6 @@
 | [0003](0003-postgres-e-rabbitmq.md) | PostgreSQL + RabbitMQ com outbox | Aceita |
 | [0004](0004-caos-deterministico.md) | Motor de caos determinístico por seed | Aceita |
 | [0005](0005-java-25-e-spring-boot-4.md) | Java 25 e Spring Boot 4 | Aceita |
+| [0006](0006-hmac-e-pix-sem-cobranca.md) | Webhook com HMAC e Pix sem cobrança em suspense | Aceita |
 
 Modelo: contexto → decisão → consequências → alternativas consideradas.

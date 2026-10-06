@@ -1,0 +1,4 @@
+# Só PIX-BAD-AUTH, sempre.
+seed: 1
+scenarios:
+  PIX-BAD-AUTH: { probability: 1.0 }

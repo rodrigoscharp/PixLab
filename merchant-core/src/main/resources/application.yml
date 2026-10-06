@@ -43,3 +43,9 @@ pixlab:
     max-attempts: 10
     backoff-base: 200ms
     backoff-max: 30s
+  consulta-ativa:
+    enabled: true
+    interval: 30s
+    window: 15m
+  webhook:
+    secret: ${PIXLAB_WEBHOOK_SECRET:pixlab-dev-secret}

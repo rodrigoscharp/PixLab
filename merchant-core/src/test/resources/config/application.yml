@@ -1,0 +1,6 @@
+# Sobrescreve application.yml nos testes: nada de falar com um PSP de verdade rodando na máquina.
+pixlab:
+  psp:
+    base-url: http://localhost:1
+  consulta-ativa:
+    enabled: false

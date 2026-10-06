@@ -1,0 +1,4 @@
+# Só PIX-RETRY, sempre.
+seed: 1
+scenarios:
+  PIX-RETRY: { probability: 1.0, failedAttempts: 3 }

@@ -133,7 +133,7 @@ Cada cenário tem um código, é ativado por configuração e é **determinísti
 | `PIX-LOST` | Webhook nunca entregue | Conciliação detecta e repara via consulta ativa |
 | `PIX-OOO` | Devolução notificada antes do crédito | Tratamento de eventos fora de ordem |
 | `PIX-RETRY` | Consumidor responde 5xx/timeout → PSP reenvia com backoff | Ack rápido; reprocessamento seguro |
-| `PIX-UNKNOWN` | Webhook para `txid` inexistente | Quarentena, sem crédito silencioso |
+| `PIX-UNKNOWN` | Webhook para `txid` inexistente | Suspense com alerta, sem crédito silencioso ([ADR-0006](adr/0006-hmac-e-pix-sem-cobranca.md)) |
 | `PIX-AMOUNT` | Valor do webhook ≠ valor no extrato | Divergência aberta pela conciliação |
 | `PIX-REFUND-PARTIAL` | Várias devoluções parciais | Soma de devoluções ≤ valor original |
 | `PIX-REFUND-FAIL` | Devolução termina `NAO_REALIZADO` | Reversão do lançamento provisório |
@@ -286,7 +286,7 @@ Justificativas em [ADR-0001](adr/0001-dois-servicos-separados.md), [ADR-0003](ad
 - **Fidelidade:** a especificação do BCB evolui; manter um teste de contrato contra o OpenAPI oficial evita divergência.
 - **Escopo do boleto:** CNAB 240 tem variações por banco; o PixLab segue o layout Febraban genérico.
 - **Política de pagamento a menor:** aceitar parcialmente ou rejeitar? Decidir em ADR na fase do boleto.
-- **Autenticação do webhook:** mTLS completo pode complicar o setup local; avaliar começar com HMAC.
+- **Autenticação do webhook:** resolvido com HMAC ([ADR-0006](adr/0006-hmac-e-pix-sem-cobranca.md)); mTLS fica como o equivalente de produção.
 
 ## 15. Referências
 

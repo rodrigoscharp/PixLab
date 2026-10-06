@@ -28,3 +28,7 @@ management:
 pixlab:
   psp:
     ispb: "12345678"
+  webhook:
+    secret: ${PIXLAB_WEBHOOK_SECRET:pixlab-dev-secret}
+  chaos:
+    profiles-dir: chaos-profiles

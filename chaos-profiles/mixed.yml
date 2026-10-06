@@ -1,0 +1,11 @@
+# Todos os cenários de entrega da F3 ao mesmo tempo, com probabilidades moderadas.
+# Rode com: ./gradlew chaos --chaos-profile=mixed --seed=<n>
+seed: 42
+scenarios:
+  PIX-DUP:      { probability: 0.30, copies: 3 }
+  PIX-DUP-CONC: { probability: 0.10, copies: 20 }
+  PIX-DELAY:    { probability: 0.40, minDelay: PT1S, maxDelay: PT2H }
+  PIX-LOST:     { probability: 0.15 }
+  PIX-RETRY:    { probability: 0.20, failedAttempts: 2 }
+  PIX-UNKNOWN:  { probability: 0.10 }
+  PIX-BAD-AUTH: { probability: 0.15 }

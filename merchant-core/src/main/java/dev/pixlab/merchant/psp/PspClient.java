@@ -2,13 +2,20 @@ package dev.pixlab.merchant.psp;
 
 import dev.pixlab.contracts.pix.CobRequest;
 import dev.pixlab.contracts.pix.CobResponse;
+import dev.pixlab.contracts.pix.Pix;
+import dev.pixlab.contracts.pix.PixListResponse;
 import dev.pixlab.contracts.pix.WebhookRequest;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 /** Cliente da API Pix do PSP. */
 @Component
 public class PspClient {
+
+    private static final int PAGE_SIZE = 500;
 
     private final RestClient http;
 
@@ -22,5 +29,23 @@ public class PspClient {
 
     public void configurarWebhook(String chave, String webhookUrl) {
         http.put().uri("/webhook/{chave}", chave).body(new WebhookRequest(webhookUrl)).retrieve().toBodilessEntity();
+    }
+
+    /** Todos os Pix recebidos em [inicio, fim), percorrendo as páginas. */
+    public List<Pix> listarPix(Instant inicio, Instant fim) {
+        var all = new ArrayList<Pix>();
+        int page = 0;
+        PixListResponse response;
+        do {
+            int current = page;
+            response = http.get()
+                    .uri(b -> b.path("/pix").queryParam("inicio", inicio).queryParam("fim", fim)
+                            .queryParam("paginacao.paginaAtual", current)
+                            .queryParam("paginacao.itensPorPagina", PAGE_SIZE).build())
+                    .retrieve().body(PixListResponse.class);
+            all.addAll(response.pix());
+            page++;
+        } while (page < response.parametros().paginacao().quantidadeDePaginas());
+        return all;
     }
 }

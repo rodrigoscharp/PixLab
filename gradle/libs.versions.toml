@@ -26,6 +26,7 @@ assertj-core = { module = "org.assertj:assertj-core" }
 awaitility = { module = "org.awaitility:awaitility" }
 spring-web = { module = "org.springframework:spring-web" }
 jackson-databind = { module = "tools.jackson.core:jackson-databind" }
+jackson-dataformat-yaml = { module = "tools.jackson.dataformat:jackson-dataformat-yaml" }
 
 [bundles]
 service = ["spring-boot-starter-actuator", "spring-boot-starter-data-jpa", "spring-boot-starter-flyway", "spring-boot-starter-webmvc", "spring-boot-starter-restclient", "flyway-database-postgresql"]
