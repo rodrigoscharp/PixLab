@@ -1,0 +1,1 @@
+-- Baseline vazia. Schema começa na F1.

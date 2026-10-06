@@ -1,0 +1,50 @@
+services:
+  postgres-merchant:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: merchant
+      POSTGRES_USER: pixlab
+      POSTGRES_PASSWORD: pixlab
+    ports:
+      - "${MERCHANT_DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-merchant:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pixlab -d merchant"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  postgres-psp:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: psp
+      POSTGRES_USER: pixlab
+      POSTGRES_PASSWORD: pixlab
+    ports:
+      - "${PSP_DB_PORT:-5433}:5432"
+    volumes:
+      - postgres-psp:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pixlab -d psp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: pixlab
+      RABBITMQ_DEFAULT_PASS: pixlab
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-merchant:
+  postgres-psp:

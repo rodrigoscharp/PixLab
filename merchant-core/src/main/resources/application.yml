@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: merchant-core
+  datasource:
+    url: jdbc:postgresql://localhost:${MERCHANT_DB_PORT:5432}/merchant
+    username: pixlab
+    password: pixlab
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: ${MERCHANT_PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

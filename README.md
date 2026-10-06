@@ -20,42 +20,47 @@ Laboratório para testar **idempotência** e **conciliação** de pagamentos via
 
 ## Stack
 
-Java 21 · Spring Boot 3 · Gradle · PostgreSQL 16 · RabbitMQ · Spring Batch · Flyway · Testcontainers · jqwik · Docker Compose · GitHub Actions
+Java 25 · Spring Boot 4 · Gradle · PostgreSQL 16 · RabbitMQ · Spring Batch · Flyway · Testcontainers · jqwik · Docker Compose · GitHub Actions
 
 ## Status
 
-🚧 Design concluído. Próxima fase: **F0 — Fundação**.
+✅ **F0 — Fundação** concluída. Próxima fase: **F1 — Pix caminho feliz**.
 
 ---
 
-## ▶️ Próxima sessão: F0 — Fundação (~8h)
+## ▶️ Próxima sessão: F1 — Pix caminho feliz (~12h)
 
-Objetivo: `docker compose up` sobe tudo e o CI fica verde. Nada de regra de negócio ainda.
+Objetivo: cobrança criada, paga e creditada uma vez, sem caos ainda. Detalhes no [roadmap](docs/roadmap.md#f1--pix-caminho-feliz).
 
-- [ ] Gerar projeto Gradle multi-módulo (Kotlin DSL) com `settings.gradle.kts` incluindo `psp-simulator`, `merchant-core`, `shared-contracts`
-- [ ] Version catalog (`gradle/libs.versions.toml`) com Spring Boot 3, Testcontainers, jqwik
-- [ ] Toolchain Java 21 configurada no build
-- [ ] `psp-simulator` e `merchant-core` com Spring Boot Web, Actuator, Data JPA, Flyway, PostgreSQL
-- [ ] Portas: simulador `8081`, recebedor `8080`
-- [ ] `docker-compose.yml`: `postgres-psp` (5433), `postgres-merchant` (5432), `rabbitmq` (5672 / 15672)
-- [ ] Migração Flyway `V1__init.sql` vazia em cada serviço
-- [ ] Um teste de integração por serviço com Testcontainers subindo o Postgres
-- [ ] Workflow `.github/workflows/ci.yml` rodando `./gradlew build`
-- [ ] Atualizar o status do F0 em [docs/roadmap.md](docs/roadmap.md)
-
-**Pronto quando:** `./gradlew build` passa localmente e no GitHub Actions, e `/actuator/health` responde `UP` nos dois serviços.
-
-Depois disso vem a **F1 — Pix caminho feliz** (ver [roadmap](docs/roadmap.md#f1--pix-caminho-feliz)).
+- [ ] Simulador: `PUT /cob/{txid}` e `GET /cob/{txid}`
+- [ ] Simulador: endpoint para "pagar" uma cobrança, com geração de e2eId válido e extrato interno
+- [ ] Simulador: dispatcher de webhook (sem caos)
+- [ ] Recebedor: criação de cobrança e endpoint de webhook
+- [ ] Recebedor: máquina de estados da cobrança
+- [ ] Recebedor: ledger de partida dobrada
+- [ ] Teste end-to-end: cria cobrança, paga, ledger balanceado e cobrança `CONCLUIDA`
 
 ## Como rodar
 
-> Disponível a partir da F0.
+Requisitos: JDK 25 e Docker.
 
 ```bash
 docker compose up -d
-./gradlew :psp-simulator:bootRun
-./gradlew :merchant-core:bootRun
+./gradlew :psp-simulator:bootRun   # http://localhost:8081/actuator/health
+./gradlew :merchant-core:bootRun   # http://localhost:8080/actuator/health
+./gradlew build                    # testes sobem Postgres via Testcontainers
 ```
+
+Portas ocupadas na sua máquina? Sobrescreva por variável de ambiente (vale para Compose e para os serviços):
+
+| Variável | Padrão |
+|---|---|
+| `MERCHANT_PORT` | 8080 |
+| `PSP_PORT` | 8081 |
+| `MERCHANT_DB_PORT` | 5432 |
+| `PSP_DB_PORT` | 5433 |
+
+RabbitMQ: `5672`, painel em http://localhost:15672 (`pixlab` / `pixlab`).
 
 ## Licença
 

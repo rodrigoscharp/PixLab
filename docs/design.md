@@ -270,8 +270,8 @@ Um cenário com falha imprime a **seed** para reprodução exata.
 
 | Item | Escolha |
 |---|---|
-| Linguagem | Java 21 |
-| Framework | Spring Boot 3 |
+| Linguagem | Java 25 |
+| Framework | Spring Boot 4 |
 | Build | Gradle multi-módulo (`psp-simulator`, `merchant-core`, `shared-contracts`) |
 | Banco | PostgreSQL 16 |
 | Mensageria | RabbitMQ (outbox → eventos de domínio) |
@@ -279,7 +279,7 @@ Um cenário com falha imprime a **seed** para reprodução exata.
 | Infra local | Docker Compose |
 | CI | GitHub Actions |
 
-Justificativas em [ADR-0001](adr/0001-dois-servicos-separados.md) e [ADR-0003](adr/0003-postgres-e-rabbitmq.md).
+Justificativas em [ADR-0001](adr/0001-dois-servicos-separados.md), [ADR-0003](adr/0003-postgres-e-rabbitmq.md) e [ADR-0005](adr/0005-java-25-e-spring-boot-4.md).
 
 ## 14. Riscos e perguntas em aberto
 
