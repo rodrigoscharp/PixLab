@@ -77,7 +77,7 @@ public class DevolucaoService {
         }
         var valor = valor(request.valor());
         exigirSaldo(pix, valor);
-        var devolucao = new Devolucao(id, ids.gerarRtrId(clock.instant()), Valor.format(valor), Devolucao.ORIGINAL,
+        var devolucao = new Devolucao(id, novoRtrId(), Valor.format(valor), Devolucao.ORIGINAL,
                 Devolucao.EM_PROCESSAMENTO, clock.instant().toString(), request.descricao());
         devolucoes.insert(e2eId, devolucao, clock.instant(), dispatchClock.instant().plus(PROCESSAMENTO));
         return devolucao;
@@ -90,7 +90,7 @@ public class DevolucaoService {
         var valor = valorTexto == null ? pix.getValor().subtract(devolucoes.comprometido(e2eId)) : valor(valorTexto);
         exigirSaldo(pix, valor);
         var agora = clock.instant();
-        var rtrId = ids.gerarRtrId(agora);
+        var rtrId = novoRtrId();
         var devolucao = new Devolucao("MED" + rtrId.substring(21), rtrId, Valor.format(valor), Devolucao.MED,
                 Devolucao.DEVOLVIDO, agora.toString(), "MED: fraude ou falha operacional");
         devolucoes.insert(e2eId, devolucao, agora, null);
@@ -119,6 +119,15 @@ public class DevolucaoService {
             }
             return !pendentes.isEmpty();
         }));
+    }
+
+    // Como o e2eId: a mesma seed reaplicada no mesmo minuto repete a sequência, e o rtrId é único no SPI.
+    private String novoRtrId() {
+        String rtrId;
+        do {
+            rtrId = ids.gerarRtrId(clock.instant());
+        } while (devolucoes.rtrIdExists(rtrId));
+        return rtrId;
     }
 
     private void notificar(PixRecebido pix) {

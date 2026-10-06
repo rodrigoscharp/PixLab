@@ -11,11 +11,14 @@ spring-boot-starter-flyway = { module = "org.springframework.boot:spring-boot-st
 spring-boot-starter-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
 spring-boot-starter-amqp = { module = "org.springframework.boot:spring-boot-starter-amqp" }
 spring-boot-starter-batch-jdbc = { module = "org.springframework.boot:spring-boot-starter-batch-jdbc" }
+spring-boot-starter-opentelemetry = { module = "org.springframework.boot:spring-boot-starter-opentelemetry" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 spring-boot-starter-restclient = { module = "org.springframework.boot:spring-boot-starter-restclient" }
 flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 postgresql = { module = "org.postgresql:postgresql" }
 
 spring-boot-starter-webmvc-test = { module = "org.springframework.boot:spring-boot-starter-webmvc-test" }
+spring-boot-micrometer-tracing-test = { module = "org.springframework.boot:spring-boot-micrometer-tracing-test" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
@@ -30,7 +33,7 @@ jackson-databind = { module = "tools.jackson.core:jackson-databind" }
 jackson-dataformat-yaml = { module = "tools.jackson.dataformat:jackson-dataformat-yaml" }
 
 [bundles]
-service = ["spring-boot-starter-actuator", "spring-boot-starter-data-jpa", "spring-boot-starter-flyway", "spring-boot-starter-webmvc", "spring-boot-starter-restclient", "flyway-database-postgresql"]
+service = ["spring-boot-starter-actuator", "spring-boot-starter-data-jpa", "spring-boot-starter-flyway", "spring-boot-starter-webmvc", "spring-boot-starter-restclient", "flyway-database-postgresql", "spring-boot-starter-opentelemetry", "micrometer-registry-prometheus"]
 service-test = ["spring-boot-starter-webmvc-test", "spring-boot-testcontainers", "testcontainers-junit-jupiter", "testcontainers-postgresql", "awaitility"]
 
 [plugins]

@@ -6,6 +6,7 @@ import dev.pixlab.contracts.pix.Pix;
 import dev.pixlab.contracts.pix.PixWebhook;
 import dev.pixlab.psp.chaos.ChaosEngine;
 import dev.pixlab.psp.chaos.DeliveryPlan;
+import dev.pixlab.psp.support.Traces;
 import dev.pixlab.psp.support.VirtualClock;
 import java.util.List;
 import org.slf4j.Logger;
@@ -27,9 +28,11 @@ public class WebhookScheduler {
     private final JdbcClient jdbc;
     private final JsonMapper json;
     private final VirtualClock clock;
+    private final Traces traces;
 
     WebhookScheduler(WebhookRepository webhooks, ChaosEngine chaos, JdbcClient jdbc, JsonMapper json,
-            VirtualClock dispatchClock) {
+            VirtualClock dispatchClock, Traces traces) {
+        this.traces = traces;
         this.webhooks = webhooks;
         this.chaos = chaos;
         this.jdbc = jdbc;
@@ -53,14 +56,16 @@ public class WebhookScheduler {
         var now = clock.instant();
         for (var plan : plans) {
             jdbc.sql("""
-                            insert into webhook_delivery (e2e_id, url, payload, forged, fake_failures, next_attempt_at)
-                            values (:e2e, :url, :payload, :forged, :fake, :at)""")
+                            insert into webhook_delivery (e2e_id, url, payload, forged, fake_failures, next_attempt_at,
+                                                          trace_parent)
+                            values (:e2e, :url, :payload, :forged, :fake, :at, :trace)""")
                     .param("e2e", pix.endToEndId())
                     .param("url", url)
                     .param("payload", json.writeValueAsString(new PixWebhook(List.of(plan.payload()))))
                     .param("forged", plan.forged())
                     .param("fake", plan.fakeFailures())
                     .param("at", now.plus(plan.delay()).atOffset(UTC))
+                    .param("trace", traces.capture())
                     .update();
         }
     }

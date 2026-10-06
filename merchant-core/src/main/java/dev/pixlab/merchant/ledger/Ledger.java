@@ -1,5 +1,6 @@
 package dev.pixlab.merchant.ledger;
 
+import dev.pixlab.merchant.support.Traces;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.List;
@@ -14,19 +15,23 @@ public class Ledger {
 
     private final LedgerEntryRepository entries;
     private final Clock clock;
+    private final Traces traces;
 
-    Ledger(LedgerEntryRepository entries, Clock clock) {
+    Ledger(LedgerEntryRepository entries, Clock clock, Traces traces) {
         this.entries = entries;
         this.clock = clock;
+        this.traces = traces;
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
     public UUID post(String ref, List<Posting> postings) {
-        requireBalanced(postings);
-        var txId = UUID.randomUUID();
-        var now = clock.instant();
-        entries.saveAll(postings.stream().map(p -> new LedgerEntry(txId, ref, p, now)).toList());
-        return txId;
+        return traces.inSpan("ledger.post", null, () -> {
+            requireBalanced(postings);
+            var txId = UUID.randomUUID();
+            var now = clock.instant();
+            entries.saveAll(postings.stream().map(p -> new LedgerEntry(txId, ref, p, now)).toList());
+            return txId;
+        });
     }
 
     @Transactional(readOnly = true)

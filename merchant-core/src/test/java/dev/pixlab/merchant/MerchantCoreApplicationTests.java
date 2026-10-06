@@ -31,6 +31,16 @@ class MerchantCoreApplicationTests {
     }
 
     @Test
+    void prometheusExpoeAsMetricasDeDominio() {
+        assertThat(mvc.get().uri("/actuator/prometheus")).hasStatusOk().bodyText()
+                .contains("ledger_imbalance{application=\"merchant-core\"} 0.0")
+                .contains("ledger_unbalanced_transactions")
+                .contains("inbox_lag_seconds")
+                .contains("inbox_events{application=\"merchant-core\",status=\"QUARANTINED\"}")
+                .contains("outbox_unpublished");
+    }
+
+    @Test
     void flywayAppliedAllMigrations() {
         assertThat(flyway.info().applied()).isNotEmpty();
         assertThat(flyway.info().pending()).isEmpty();

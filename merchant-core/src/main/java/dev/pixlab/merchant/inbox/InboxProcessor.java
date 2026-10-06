@@ -1,6 +1,7 @@
 package dev.pixlab.merchant.inbox;
 
 import dev.pixlab.merchant.support.Poller;
+import dev.pixlab.merchant.support.Traces;
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +29,11 @@ public class InboxProcessor {
     private final TransactionTemplate tx;
     private final InboxProperties props;
     private final Clock clock;
+    private final Traces traces;
 
     InboxProcessor(Inbox inbox, List<InboxEventHandler> handlers, TransactionTemplate tx, InboxProperties props,
-            Clock clock) {
+            Clock clock, Traces traces) {
+        this.traces = traces;
         this.inbox = inbox;
         this.handlers = handlers.stream().collect(Collectors.toMap(InboxEventHandler::source, Function.identity()));
         this.tx = tx;
@@ -48,7 +51,9 @@ public class InboxProcessor {
                     return false;
                 }
                 claimed.set(event);
-                record(event, handlerFor(event).handle(event));
+                var handler = handlerFor(event);
+                record(event, traces.inSpan("inbox.process " + event.source(), event.traceParent(),
+                        () -> handler.handle(event)));
                 return true;
             }));
         } catch (RuntimeException e) {

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import dev.pixlab.contracts.pix.Pix;
 import dev.pixlab.psp.chaos.ChaosProfile.ScenarioConfig;
 import dev.pixlab.psp.support.SeedableRandom;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -88,7 +89,7 @@ class ChaosEngineTest {
     }
 
     private static ChaosEngine engine(ChaosProfile profile) {
-        var engine = new ChaosEngine(new SeedableRandom(0));
+        var engine = new ChaosEngine(new SeedableRandom(0), new SimpleMeterRegistry());
         engine.apply(profile);
         return engine;
     }

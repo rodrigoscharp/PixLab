@@ -4,11 +4,15 @@ import static java.time.ZoneOffset.UTC;
 
 import dev.pixlab.contracts.pix.WebhookSignature;
 import dev.pixlab.psp.support.Poller;
+import dev.pixlab.psp.support.Traces;
 import dev.pixlab.psp.support.VirtualClock;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +33,8 @@ import org.springframework.web.client.RestClient;
 @Component
 class WebhookDispatcher {
 
-    record Due(long id, String e2eId, String url, String payload, boolean forged, int fakeFailures, int attempts) {}
+    record Due(long id, String e2eId, String url, String payload, boolean forged, int fakeFailures, int attempts,
+            String traceParent) {}
 
     private static final Logger log = LoggerFactory.getLogger(WebhookDispatcher.class);
     private static final int MAX_ATTEMPTS = 8;
@@ -42,9 +47,16 @@ class WebhookDispatcher {
     private final VirtualClock clock;
     private final RestClient http;
     private final String secret;
+    private final Traces traces;
+    private final Map<String, Counter> deliveries;
 
     WebhookDispatcher(JdbcClient jdbc, TransactionTemplate tx, VirtualClock dispatchClock, RestClient.Builder http,
-            @Value("${pixlab.webhook.secret}") String secret) {
+            @Value("${pixlab.webhook.secret}") String secret, Traces traces, MeterRegistry meters) {
+        this.traces = traces;
+        this.deliveries = Map.of(
+                "entregue", counter(meters, "entregue"),
+                "falhou", counter(meters, "falhou"),
+                "forjada", counter(meters, "forjada"));
         this.jdbc = jdbc;
         this.tx = tx;
         this.clock = dispatchClock;
@@ -61,7 +73,10 @@ class WebhookDispatcher {
         }
         // Em paralelo e fora de transação: é o que faz cópias de PIX-DUP-CONC chegarem juntas no recebedor.
         try (var pool = Executors.newVirtualThreadPerTaskExecutor()) {
-            due.forEach(d -> pool.submit(() -> send(d)));
+            due.forEach(d -> pool.submit(() -> traces.inSpan("webhook.dispatch", d.traceParent(), () -> {
+                send(d);
+                return null;
+            })));
         }
         return true;
     }
@@ -74,14 +89,15 @@ class WebhookDispatcher {
         return tx.execute(status -> {
             var now = clock.instant();
             var due = jdbc.sql("""
-                            select id, e2e_id, url, payload, forged, fake_failures, attempts from webhook_delivery
+                            select id, e2e_id, url, payload, forged, fake_failures, attempts, trace_parent
+                            from webhook_delivery
                             where status in ('PENDING', 'SENDING') and next_attempt_at <= :now
                             order by next_attempt_at, id limit 50
                             for update skip locked""")
                     .param("now", now.atOffset(UTC))
                     .query((rs, n) -> new Due(rs.getLong("id"), rs.getString("e2e_id"), rs.getString("url"),
                             rs.getString("payload"), rs.getBoolean("forged"), rs.getInt("fake_failures"),
-                            rs.getInt("attempts")))
+                            rs.getInt("attempts"), rs.getString("trace_parent")))
                     .list();
             if (!due.isEmpty()) {
                 jdbc.sql("update webhook_delivery set status = 'SENDING', next_attempt_at = :lease where id in (:ids)")
@@ -110,6 +126,7 @@ class WebhookDispatcher {
             ok = false;
             error = "PIX-RETRY: resposta descartada como timeout";
         }
+        deliveries.get(d.forged() ? "forjada" : ok ? "entregue" : "falhou").increment();
         if (d.forged()) {
             finish(d, statusCode, "forjada", "DELIVERED");
         } else if (ok) {
@@ -130,6 +147,11 @@ class WebhookDispatcher {
                     .param("id", d.id())
                     .update();
         }
+    }
+
+    private static Counter counter(MeterRegistry meters, String result) {
+        return Counter.builder("psp.webhook.deliveries").description("Tentativas de entrega de webhook")
+                .tag("result", result).register(meters);
     }
 
     private void finish(Due d, Integer statusCode, String error, String status) {

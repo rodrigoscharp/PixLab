@@ -3,6 +3,7 @@ package dev.pixlab.psp.chaos;
 import dev.pixlab.contracts.pix.Pix;
 import dev.pixlab.contracts.pix.Valor;
 import dev.pixlab.psp.support.SeedableRandom;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -24,9 +25,11 @@ public class ChaosEngine {
 
     private final AtomicReference<ChaosProfile> profile = new AtomicReference<>(ChaosProfile.NONE);
     private final SeedableRandom random;
+    private final MeterRegistry meters;
 
-    ChaosEngine(SeedableRandom random) {
+    ChaosEngine(SeedableRandom random, MeterRegistry meters) {
         this.random = random;
+        this.meters = meters;
     }
 
     public void apply(ChaosProfile newProfile) {
@@ -47,7 +50,11 @@ public class ChaosEngine {
 
     public boolean happens(ChaosScenario scenario, String key) {
         var cfg = profile.get().config(scenario);
-        return cfg != null && rng(scenario, key).nextDouble() < cfg.probability();
+        var injected = cfg != null && rng(scenario, key).nextDouble() < cfg.probability();
+        if (injected) {
+            meters.counter("psp.chaos.injections", "scenario", scenario.code()).increment();
+        }
+        return injected;
     }
 
     public ChaosProfile.ScenarioConfig config(ChaosScenario scenario) {

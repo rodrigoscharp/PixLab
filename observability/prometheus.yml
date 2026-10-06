@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: merchant-core
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:8090"]
+  - job_name: psp-simulator
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:8091"]

@@ -12,6 +12,7 @@ dependencies {
 
     testImplementation(libs.bundles.service.test)
     testImplementation(libs.testcontainers.rabbitmq)
+    testImplementation(libs.spring.boot.micrometer.tracing.test)
     testImplementation(libs.jqwik)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

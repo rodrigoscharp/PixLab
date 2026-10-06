@@ -2,6 +2,8 @@ package dev.pixlab.merchant.inbox;
 
 import static java.time.ZoneOffset.UTC;
 
+import dev.pixlab.merchant.support.Traces;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Instant;
 import java.util.Optional;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -12,26 +14,38 @@ import org.springframework.stereotype.Repository;
 public class Inbox {
 
     private final JdbcClient jdbc;
+    private final Traces traces;
+    private final MeterRegistry meters;
 
-    Inbox(JdbcClient jdbc) {
+    Inbox(JdbcClient jdbc, Traces traces, MeterRegistry meters) {
         this.jdbc = jdbc;
+        this.traces = traces;
+        this.meters = meters;
     }
 
-    /** @return true se o evento é novo; false se já estava na inbox (duplicata descartada) */
+    /**
+     * Grava o evento se a chave for nova. Conta {@code webhook_received_total} ou
+     * {@code webhook_duplicate_discarded_total} por source.
+     *
+     * @return true se o evento é novo; false se já estava na inbox (duplicata descartada)
+     */
     public boolean offer(String source, String eventKey, String payloadJson) {
-        return jdbc.sql("""
-                        insert into webhook_inbox (source, event_key, payload)
-                        values (:source, :key, cast(:payload as jsonb))
+        var fresh = jdbc.sql("""
+                        insert into webhook_inbox (source, event_key, payload, trace_parent)
+                        values (:source, :key, cast(:payload as jsonb), :trace)
                         on conflict (source, event_key) do nothing""")
                 .param("source", source)
                 .param("key", eventKey)
                 .param("payload", payloadJson)
+                .param("trace", traces.capture())
                 .update() == 1;
+        meters.counter(fresh ? "webhook.received" : "webhook.duplicate.discarded", "source", source).increment();
+        return fresh;
     }
 
     Optional<InboxEvent> claimNext(Instant now) {
         return jdbc.sql("""
-                        select id, source, event_key, payload::text as payload, attempts
+                        select id, source, event_key, payload::text as payload, attempts, trace_parent
                         from webhook_inbox
                         where status = 'PENDING' and next_attempt_at <= :now
                         order by next_attempt_at, id
@@ -39,7 +53,7 @@ public class Inbox {
                         for update skip locked""")
                 .param("now", now.atOffset(UTC))
                 .query((rs, n) -> new InboxEvent(rs.getLong("id"), rs.getString("source"), rs.getString("event_key"),
-                        rs.getString("payload"), rs.getInt("attempts")))
+                        rs.getString("payload"), rs.getInt("attempts"), rs.getString("trace_parent")))
                 .optional();
     }
 

@@ -12,6 +12,7 @@ import dev.pixlab.merchant.ledger.Account;
 import dev.pixlab.merchant.ledger.Ledger;
 import dev.pixlab.merchant.outbox.Outbox;
 import dev.pixlab.merchant.payment.PixEvents;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -33,8 +34,10 @@ class Reconciler {
     private final Ledger ledger;
     private final Outbox outbox;
     private final JsonMapper json;
+    private final MeterRegistry meters;
 
-    Reconciler(JdbcClient jdbc, Inbox inbox, Ledger ledger, Outbox outbox, JsonMapper json) {
+    Reconciler(JdbcClient jdbc, Inbox inbox, Ledger ledger, Outbox outbox, JsonMapper json, MeterRegistry meters) {
+        this.meters = meters;
         this.jdbc = jdbc;
         this.inbox = inbox;
         this.ledger = ledger;
@@ -96,6 +99,9 @@ class Reconciler {
                 .param("action", action(item))
                 .param("details", json.writeValueAsString(item.detail() == null ? Map.of() : Map.of("detail", item.detail())))
                 .update();
+        if (inserted == 1 && item.result() != ReconResult.OK) {
+            meters.counter("recon.divergence", "result", item.result().name()).increment();
+        }
         if (inserted == 0 || item.pix() == null) {
             return;
         }
@@ -115,7 +121,7 @@ class Reconciler {
     /** Ledger tem pagamento na janela que o PSP não listou: possível crédito fantasma. */
     @Transactional(propagation = Propagation.MANDATORY)
     int markMissingInPsp(long runId, Instant inicio, Instant fim) {
-        return jdbc.sql("""
+        int missing = jdbc.sql("""
                         insert into recon_item (run_id, key, result, psp_amount, ledger_amount, action, details)
                         select :run, p.e2e_id, 'FALTA_NO_PSP', null,
                                (select coalesce(sum(debit - credit), 0) from ledger_entry l
@@ -130,6 +136,8 @@ class Reconciler {
                 .param("inicio", inicio.atOffset(UTC))
                 .param("fim", fim.atOffset(UTC))
                 .update();
+        meters.counter("recon.divergence", "result", ReconResult.FALTA_NO_PSP.name()).increment(missing);
+        return missing;
     }
 
     BigDecimal liquidarNet(String e2eId) {

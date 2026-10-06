@@ -26,6 +26,7 @@ final class Lab {
 
         var pspArgs = new ArrayList<>(datasource(pspDb));
         pspArgs.add("--pixlab.chaos.profiles-dir=" + System.getProperty("pixlab.e2e.chaos-profiles"));
+        pspArgs.add("--management.tracing.export.otlp.enabled=false");
         psp = ServiceProcess.start("psp-simulator", "pixlab.e2e.psp-jar", pspArgs);
 
         var merchantPort = ServiceProcess.freePort();
@@ -35,6 +36,7 @@ final class Lab {
         merchantArgs.add("--spring.rabbitmq.username=" + rabbit.getAdminUsername());
         merchantArgs.add("--spring.rabbitmq.password=" + rabbit.getAdminPassword());
         merchantArgs.add("--pixlab.psp.base-url=" + psp.baseUrl());
+        merchantArgs.add("--management.tracing.export.otlp.enabled=false");
         merchantArgs.add("--pixlab.psp.webhook-url=http://localhost:" + merchantPort + "/webhook");
         merchant = ServiceProcess.start("merchant-core", "pixlab.e2e.merchant-jar", merchantArgs, merchantPort);
 

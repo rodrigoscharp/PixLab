@@ -65,6 +65,11 @@ public class DevolucaoRepository {
                         Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
     }
 
+    boolean rtrIdExists(String rtrId) {
+        return jdbc.sql("select exists(select 1 from devolucao where rtr_id = ?)").param(rtrId)
+                .query(Boolean.class).single();
+    }
+
     /** Σ das devoluções que não falharam: o limite do invariante 3 é contra esse valor. */
     BigDecimal comprometido(String e2eId) {
         return jdbc.sql("select coalesce(sum(valor), 0) from devolucao where e2e_id = :e2e and status <> 'NAO_REALIZADO'")

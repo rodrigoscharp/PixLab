@@ -1,6 +1,8 @@
 package dev.pixlab.merchant.payment;
 
 import dev.pixlab.contracts.pix.WebhookSignature;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletInputStream;
@@ -30,9 +32,12 @@ class WebhookSignatureFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(WebhookSignatureFilter.class);
 
     private final String secret;
+    private final Counter rejected;
 
-    WebhookSignatureFilter(@Value("${pixlab.webhook.secret}") String secret) {
+    WebhookSignatureFilter(@Value("${pixlab.webhook.secret}") String secret, MeterRegistry meters) {
         this.secret = secret;
+        this.rejected = Counter.builder("webhook.rejected").tag("reason", "assinatura")
+                .description("Webhooks rejeitados antes da inbox").register(meters);
     }
 
     @Override
@@ -46,6 +51,7 @@ class WebhookSignatureFilter extends OncePerRequestFilter {
         var body = request.getInputStream().readAllBytes();
         if (!WebhookSignature.verify(secret, body, request.getHeader(WebhookSignature.HEADER))) {
             log.warn("Webhook com assinatura inválida rejeitado ({} bytes)", body.length);
+            rejected.increment();
             response.sendError(HttpStatus.UNAUTHORIZED.value(), "assinatura inválida");
             return;
         }

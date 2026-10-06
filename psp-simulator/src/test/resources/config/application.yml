@@ -1,0 +1,7 @@
+# Testes não exportam traces (não há coletor).
+management:
+  # Só o exportador OTLP: desligar management.tracing.export também desliga a propagação do traceparent.
+  tracing:
+    export:
+      otlp:
+        enabled: false
