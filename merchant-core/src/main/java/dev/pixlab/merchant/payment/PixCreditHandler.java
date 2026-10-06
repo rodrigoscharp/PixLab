@@ -5,6 +5,7 @@ import static dev.pixlab.merchant.ledger.Posting.debit;
 
 import dev.pixlab.contracts.pix.Pix;
 import dev.pixlab.contracts.pix.Valor;
+import dev.pixlab.merchant.charge.Charge;
 import dev.pixlab.merchant.charge.ChargeEvent;
 import dev.pixlab.merchant.charge.ChargeRepository;
 import dev.pixlab.merchant.charge.ChargeStatus;
@@ -68,7 +69,7 @@ public class PixCreditHandler implements InboxEventHandler {
             return creditWithoutCharge(pix, amount);
         }
         return switch (charge.apply(new ChargeEvent.PixReceived(amount))) {
-            case Transition.Rejected(var reason) -> new Outcome.Quarantine(reason);
+            case Transition.Rejected(var reason) -> creditDuplicate(charge, pix, amount, reason);
             case Transition.Moved(var to) -> {
                 payments.save(new Payment(charge.getId(), pix.endToEndId(), amount, Instant.parse(pix.horario()),
                         clock.instant()));
@@ -93,6 +94,20 @@ public class PixCreditHandler implements InboxEventHandler {
         outbox.add("payment", pix.endToEndId(), "pix.sem_cobranca", Map.of(
                 "endToEndId", pix.endToEndId(), "txid", String.valueOf(pix.txid()), "valor", pix.valor()));
         log.warn("Pix {} sem cobrança (txid {}); {} em suspense", pix.endToEndId(), pix.txid(), pix.valor());
+        return Outcome.APPLIED;
+    }
+
+    /**
+     * Pix para uma cobrança que já foi paga (DUPLICADO): o dinheiro entrou, então vira crédito a devolver ao pagador.
+     */
+    private Outcome creditDuplicate(Charge charge, Pix pix, BigDecimal amount, String reason) {
+        payments.save(new Payment(charge.getId(), pix.endToEndId(), amount, Instant.parse(pix.horario()), clock.instant()));
+        ledger.post(pix.endToEndId(), List.of(debit(Account.PSP_PIX_LIQUIDAR, amount),
+                credit(Account.CREDITO_A_DEVOLVER, amount)));
+        outbox.add("charge", charge.getTxid(), "pix.duplicado", Map.of(
+                "txid", charge.getTxid(), "endToEndId", pix.endToEndId(), "valor", pix.valor()));
+        log.warn("Pix {} para cobrança {} já paga ({}); {} em crédito a devolver", pix.endToEndId(), charge.getTxid(),
+                reason, pix.valor());
         return Outcome.APPLIED;
     }
 

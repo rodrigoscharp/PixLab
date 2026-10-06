@@ -31,6 +31,8 @@ final class ChaosRun {
 
     record Paid(String txid, String e2eId, BigDecimal valor) {}
 
+    record ReconRun(long id, String status, Map<String, Object> summary) {}
+
     private ChaosRun() {}
 
     /**
@@ -84,6 +86,9 @@ final class ChaosRun {
                             .retrieve().toBodilessEntity();
                 } else if (roll == 1) {
                     psp.post().uri("/sim/pix/{e2e}/med", p.e2eId()).retrieve().toBodilessEntity();
+                } else if (roll == 2) {
+                    // DUPLICADO: o pagador paga a mesma cobrança de novo.
+                    psp.post().uri("/sim/cob/{txid}/pagamento?duplicar=true", p.txid()).retrieve().toBodilessEntity();
                 }
             }
         } finally {
@@ -92,6 +97,16 @@ final class ChaosRun {
         settle(lab, inicio);
 
         var fim = Instant.now().plusSeconds(1);
+
+        // Conciliação (F5): a primeira execução repara e ajusta; a segunda confirma o fechamento (invariante 4).
+        var window = Map.of("inicio", inicio.toString(), "fim", fim.toString());
+        var first = merchant.post().uri("/recon/runs").body(window).retrieve().body(ReconRun.class);
+        assertThat(first.status()).as("conciliação (seed %d)", seed).isEqualTo("COMPLETED");
+        settle(lab, inicio);
+        var second = merchant.post().uri("/recon/runs").body(window).retrieve().body(ReconRun.class);
+        assertThat(second.summary().get("fechado")).as("fechamento %s (seed %d)", second.summary(), seed).isEqualTo(true);
+        System.out.printf("[chaos] conciliação: %s%n", first.summary().get("counts"));
+
         var extrato = psp.get().uri("/pix?inicio={i}&fim={f}&paginacao.itensPorPagina=1000", inicio, fim)
                 .retrieve().body(PixListResponse.class).pix();
         assertThat(extrato).as("extrato do PSP").hasSizeGreaterThanOrEqualTo(payments);

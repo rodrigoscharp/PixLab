@@ -14,6 +14,11 @@ spring:
     username: pixlab
     password: pixlab
     publisher-confirm-type: simple
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: always
   mvc:
     problemdetails:
       enabled: true
@@ -49,3 +54,10 @@ pixlab:
     window: 15m
   webhook:
     secret: ${PIXLAB_WEBHOOK_SECRET:pixlab-dev-secret}
+  recon:
+    enabled: true
+    interval: 15m
+    window: 1h
+    lag: 5m
+    chunk-size: 100
+    page-size: 200

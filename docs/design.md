@@ -210,7 +210,7 @@ Classificação de cada item:
 | `OK` | Presente e igual nas três fontes | — |
 | `FALTA_NO_LEDGER` | PSP tem, ledger não | Reinjeta na inbox (auto-reparo) |
 | `FALTA_NO_PSP` | Ledger tem, PSP não | Alerta crítico (possível crédito fantasma) |
-| `VALOR_DIVERGENTE` | Valores diferentes | Abre caso para análise manual |
+| `VALOR_DIVERGENTE` | Valores diferentes | Ajusta o ledger para o PSP e abre caso ([ADR-0007](adr/0007-conciliacao-ajusta-para-o-psp.md)) |
 | `SEM_COBRANCA` | Pago sem cobrança conhecida | Mantém em `suspense` |
 | `DUPLICADO` | Mesmo pagamento duas vezes no PSP | Crédito a devolver |
 

@@ -8,7 +8,7 @@ import java.util.List;
 import tools.jackson.databind.json.JsonMapper;
 
 /** Transforma um Pix do PSP em eventos da inbox: o crédito e cada estado de cada devolução. */
-final class PixEvents {
+public final class PixEvents {
 
     private PixEvents() {}
 
@@ -17,7 +17,7 @@ final class PixEvents {
      *                   consulta ativa, e é isso que deixa PIX-OOO acontecer de verdade
      * @return quantos eventos eram novos
      */
-    static int offer(Inbox inbox, JsonMapper json, Pix pix, boolean withCredit) {
+    public static int offer(Inbox inbox, JsonMapper json, Pix pix, boolean withCredit) {
         int injected = 0;
         if (withCredit) {
             var credit = new Pix(pix.endToEndId(), pix.txid(), pix.valor(), pix.horario(), pix.infoPagador(), List.of());

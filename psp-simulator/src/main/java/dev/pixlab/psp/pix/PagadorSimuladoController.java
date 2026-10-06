@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,7 +23,8 @@ class PagadorSimuladoController {
 
     @PostMapping("/sim/cob/{txid}/pagamento")
     @ResponseStatus(HttpStatus.CREATED)
-    Pix pagar(@PathVariable String txid, @RequestBody(required = false) PagamentoRequest request) {
-        return pagador.pagar(txid, request == null ? null : request.infoPagador());
+    Pix pagar(@PathVariable String txid, @RequestBody(required = false) PagamentoRequest request,
+            @RequestParam(defaultValue = "false") boolean duplicar) {
+        return pagador.pagar(txid, request == null ? null : request.infoPagador(), duplicar);
     }
 }

@@ -4,3 +4,5 @@ pixlab:
     base-url: http://localhost:1
   consulta-ativa:
     enabled: false
+  recon:
+    enabled: false

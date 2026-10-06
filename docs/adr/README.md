@@ -8,5 +8,6 @@
 | [0004](0004-caos-deterministico.md) | Motor de caos determinístico por seed | Aceita |
 | [0005](0005-java-25-e-spring-boot-4.md) | Java 25 e Spring Boot 4 | Aceita |
 | [0006](0006-hmac-e-pix-sem-cobranca.md) | Webhook com HMAC e Pix sem cobrança em suspense | Aceita |
+| [0007](0007-conciliacao-ajusta-para-o-psp.md) | Conciliação ajusta o ledger para o valor do PSP | Aceita |
 
 Modelo: contexto → decisão → consequências → alternativas consideradas.

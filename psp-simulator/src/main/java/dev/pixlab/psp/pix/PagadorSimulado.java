@@ -44,16 +44,31 @@ public class PagadorSimulado {
 
     @Transactional
     public Pix pagar(String txid, String infoPagador) {
+        return pagar(txid, infoPagador, false);
+    }
+
+    /**
+     * @param duplicar paga de novo uma cobrança já concluída (DUPLICADO: o pagador pagou duas vezes)
+     */
+    @Transactional
+    public Pix pagar(String txid, String infoPagador, boolean duplicar) {
         var cob = cobs.findById(txid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "cobrança não encontrada: " + txid));
         var agora = clock.instant();
-        if (cob.getStatus() != CobStatus.ATIVA) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "cobrança não está ATIVA: " + cob.getStatus());
+        if (duplicar) {
+            if (cob.getStatus() != CobStatus.CONCLUIDA) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "só dá para duplicar uma cobrança CONCLUIDA");
+            }
+            log.info("[DUPLICADO] cobrança {} paga de novo", txid);
+        } else {
+            if (cob.getStatus() != CobStatus.ATIVA) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "cobrança não está ATIVA: " + cob.getStatus());
+            }
+            if (cob.expiradaEm(agora)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "cobrança expirada");
+            }
+            cob.concluir();
         }
-        if (cob.expiradaEm(agora)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "cobrança expirada");
-        }
-        cob.concluir();
         var pix = extrato.save(new PixRecebido(novoE2eId(agora), txid, cob.getChave(), cob.getValor(), agora, infoPagador))
                 .toContract();
         webhooks.schedule(cob.getChave(), pix);

@@ -7,6 +7,7 @@ dependencies {
     implementation(project(":shared-contracts"))
     implementation(libs.bundles.service)
     implementation(libs.spring.boot.starter.amqp)
+    implementation(libs.spring.boot.starter.batch.jdbc)
     runtimeOnly(libs.postgresql)
 
     testImplementation(libs.bundles.service.test)

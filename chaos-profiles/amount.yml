@@ -1,0 +1,4 @@
+# Só PIX-AMOUNT, sempre: o webhook traz um valor diferente do extrato.
+seed: 1
+scenarios:
+  PIX-AMOUNT: { probability: 1.0 }

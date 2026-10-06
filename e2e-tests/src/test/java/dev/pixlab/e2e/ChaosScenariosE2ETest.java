@@ -3,11 +3,11 @@ package dev.pixlab.e2e;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/** F3/F4 — cada cenário de entrega e de devolução do catálogo, isolado e sempre ativo, ponta a ponta. */
+/** F3–F5 — cada cenário de entrega, devolução e valor do catálogo, isolado e sempre ativo, ponta a ponta. */
 class ChaosScenariosE2ETest {
 
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = {"dup", "dup-conc", "delay", "lost", "retry", "unknown", "bad-auth", "ooo", "refund-fail"})
+    @ValueSource(strings = {"dup", "dup-conc", "delay", "lost", "retry", "unknown", "bad-auth", "ooo", "refund-fail", "amount"})
     void cenarioMantemInvariantes(String profile) throws Exception {
         ChaosRun.run(profile, 1, 5);
     }

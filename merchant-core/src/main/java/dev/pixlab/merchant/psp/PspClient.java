@@ -37,18 +37,20 @@ public class PspClient {
         return http.put().uri("/pix/{e2eId}/devolucao/{id}", e2eId, id).body(request).retrieve().body(Devolucao.class);
     }
 
+    public PixListResponse listarPixPagina(Instant inicio, Instant fim, int page, int size) {
+        return http.get()
+                .uri(b -> b.path("/pix").queryParam("inicio", inicio).queryParam("fim", fim)
+                        .queryParam("paginacao.paginaAtual", page).queryParam("paginacao.itensPorPagina", size).build())
+                .retrieve().body(PixListResponse.class);
+    }
+
     /** Todos os Pix recebidos em [inicio, fim), percorrendo as páginas. */
     public List<Pix> listarPix(Instant inicio, Instant fim) {
         var all = new ArrayList<Pix>();
         int page = 0;
         PixListResponse response;
         do {
-            int current = page;
-            response = http.get()
-                    .uri(b -> b.path("/pix").queryParam("inicio", inicio).queryParam("fim", fim)
-                            .queryParam("paginacao.paginaAtual", current)
-                            .queryParam("paginacao.itensPorPagina", PAGE_SIZE).build())
-                    .retrieve().body(PixListResponse.class);
+            response = listarPixPagina(inicio, fim, page, PAGE_SIZE);
             all.addAll(response.pix());
             page++;
         } while (page < response.parametros().paginacao().quantidadeDePaginas());
