@@ -1,0 +1,80 @@
+package dev.pixlab.merchant.inbox;
+
+import static java.time.ZoneOffset.UTC;
+
+import java.time.Instant;
+import java.util.Optional;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.stereotype.Repository;
+
+/** Acesso à {@code webhook_inbox}. Idempotência vem da constraint UNIQUE, não de um SELECT prévio. */
+@Repository
+public class Inbox {
+
+    private final JdbcClient jdbc;
+
+    Inbox(JdbcClient jdbc) {
+        this.jdbc = jdbc;
+    }
+
+    /** @return true se o evento é novo; false se já estava na inbox (duplicata descartada) */
+    public boolean offer(String source, String eventKey, String payloadJson) {
+        return jdbc.sql("""
+                        insert into webhook_inbox (source, event_key, payload)
+                        values (:source, :key, cast(:payload as jsonb))
+                        on conflict (source, event_key) do nothing""")
+                .param("source", source)
+                .param("key", eventKey)
+                .param("payload", payloadJson)
+                .update() == 1;
+    }
+
+    Optional<InboxEvent> claimNext(Instant now) {
+        return jdbc.sql("""
+                        select id, source, event_key, payload::text as payload, attempts
+                        from webhook_inbox
+                        where status = 'PENDING' and next_attempt_at <= :now
+                        order by next_attempt_at, id
+                        limit 1
+                        for update skip locked""")
+                .param("now", now.atOffset(UTC))
+                .query((rs, n) -> new InboxEvent(rs.getLong("id"), rs.getString("source"), rs.getString("event_key"),
+                        rs.getString("payload"), rs.getInt("attempts")))
+                .optional();
+    }
+
+    void markProcessed(long id, Instant now) {
+        jdbc.sql("update webhook_inbox set status = 'PROCESSED', processed_at = :now, attempts = attempts + 1 where id = :id")
+                .param("now", now.atOffset(UTC))
+                .param("id", id)
+                .update();
+    }
+
+    void markRetry(long id, Instant nextAttemptAt, String error) {
+        jdbc.sql("""
+                        update webhook_inbox set attempts = attempts + 1, next_attempt_at = :next, last_error = :error
+                        where id = :id and status = 'PENDING'""")
+                .param("next", nextAttemptAt.atOffset(UTC))
+                .param("error", error)
+                .param("id", id)
+                .update();
+    }
+
+    void markQuarantined(long id, Instant now, String error) {
+        jdbc.sql("""
+                        update webhook_inbox set status = 'QUARANTINED', processed_at = :now, attempts = attempts + 1,
+                            last_error = :error
+                        where id = :id and status = 'PENDING'""")
+                .param("now", now.atOffset(UTC))
+                .param("error", error)
+                .param("id", id)
+                .update();
+    }
+
+    public long countByStatus(InboxStatus status) {
+        return jdbc.sql("select count(*) from webhook_inbox where status = :status")
+                .param("status", status.name())
+                .query(Long.class)
+                .single();
+    }
+}

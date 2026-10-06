@@ -16,6 +16,7 @@ public class LedgerEntry {
     private Long id;
 
     private UUID txId;
+    private String ref;
     private String account;
     private BigDecimal debit;
     private BigDecimal credit;
@@ -23,8 +24,9 @@ public class LedgerEntry {
 
     protected LedgerEntry() {}
 
-    LedgerEntry(UUID txId, Posting posting, Instant createdAt) {
+    LedgerEntry(UUID txId, String ref, Posting posting, Instant createdAt) {
         this.txId = txId;
+        this.ref = ref;
         this.account = posting.account().code();
         this.debit = posting.debit();
         this.credit = posting.credit();

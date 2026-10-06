@@ -13,6 +13,7 @@ dependencies {
     testImplementation(libs.spring.web)
     testImplementation(libs.jackson.databind)
     testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.testcontainers.rabbitmq)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 

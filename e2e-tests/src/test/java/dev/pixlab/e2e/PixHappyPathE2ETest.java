@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.rabbitmq.RabbitMQContainer;
 
 /**
  * F1 — Pix caminho feliz, de ponta a ponta: recebedor cria a cobrança no PSP, o pagador simulado paga,
@@ -28,6 +29,7 @@ class PixHappyPathE2ETest {
 
     static final PostgreSQLContainer pspDb = new PostgreSQLContainer("postgres:16-alpine");
     static final PostgreSQLContainer merchantDb = new PostgreSQLContainer("postgres:16-alpine");
+    static final RabbitMQContainer rabbit = new RabbitMQContainer("rabbitmq:4-management-alpine");
 
     static ServiceProcess psp;
     static ServiceProcess merchant;
@@ -38,11 +40,16 @@ class PixHappyPathE2ETest {
     static void start() throws Exception {
         pspDb.start();
         merchantDb.start();
+        rabbit.start();
 
         psp = ServiceProcess.start("psp-simulator", "pixlab.e2e.psp-jar", datasource(pspDb));
 
         var merchantPort = ServiceProcess.freePort();
         var merchantArgs = new ArrayList<>(datasource(merchantDb));
+        merchantArgs.add("--spring.rabbitmq.host=" + rabbit.getHost());
+        merchantArgs.add("--spring.rabbitmq.port=" + rabbit.getAmqpPort());
+        merchantArgs.add("--spring.rabbitmq.username=" + rabbit.getAdminUsername());
+        merchantArgs.add("--spring.rabbitmq.password=" + rabbit.getAdminPassword());
         merchantArgs.add("--pixlab.psp.base-url=" + psp.baseUrl());
         merchantArgs.add("--pixlab.psp.webhook-url=http://localhost:" + merchantPort + "/webhook");
         merchant = ServiceProcess.start("merchant-core", "pixlab.e2e.merchant-jar", merchantArgs, merchantPort);
@@ -56,6 +63,7 @@ class PixHappyPathE2ETest {
         if (merchant != null) merchant.close();
         if (psp != null) psp.close();
         merchantDb.stop();
+        rabbit.stop();
         pspDb.stop();
     }
 

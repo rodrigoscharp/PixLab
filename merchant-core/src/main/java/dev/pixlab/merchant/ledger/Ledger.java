@@ -21,11 +21,11 @@ public class Ledger {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
-    public UUID post(List<Posting> postings) {
+    public UUID post(String ref, List<Posting> postings) {
         requireBalanced(postings);
         var txId = UUID.randomUUID();
         var now = clock.instant();
-        entries.saveAll(postings.stream().map(p -> new LedgerEntry(txId, p, now)).toList());
+        entries.saveAll(postings.stream().map(p -> new LedgerEntry(txId, ref, p, now)).toList());
         return txId;
     }
 

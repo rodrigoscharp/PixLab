@@ -9,6 +9,7 @@ spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
 spring-boot-starter-flyway = { module = "org.springframework.boot:spring-boot-starter-flyway" }
 spring-boot-starter-webmvc = { module = "org.springframework.boot:spring-boot-starter-webmvc" }
+spring-boot-starter-amqp = { module = "org.springframework.boot:spring-boot-starter-amqp" }
 spring-boot-starter-restclient = { module = "org.springframework.boot:spring-boot-starter-restclient" }
 flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 postgresql = { module = "org.postgresql:postgresql" }
@@ -17,6 +18,7 @@ spring-boot-starter-webmvc-test = { module = "org.springframework.boot:spring-bo
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:testcontainers-junit-jupiter" }
 testcontainers-postgresql = { module = "org.testcontainers:testcontainers-postgresql" }
+testcontainers-rabbitmq = { module = "org.testcontainers:testcontainers-rabbitmq" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 jqwik = { module = "net.jqwik:jqwik", version.ref = "jqwik" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
@@ -27,7 +29,7 @@ jackson-databind = { module = "tools.jackson.core:jackson-databind" }
 
 [bundles]
 service = ["spring-boot-starter-actuator", "spring-boot-starter-data-jpa", "spring-boot-starter-flyway", "spring-boot-starter-webmvc", "spring-boot-starter-restclient", "flyway-database-postgresql"]
-service-test = ["spring-boot-starter-webmvc-test", "spring-boot-testcontainers", "testcontainers-junit-jupiter", "testcontainers-postgresql"]
+service-test = ["spring-boot-starter-webmvc-test", "spring-boot-testcontainers", "testcontainers-junit-jupiter", "testcontainers-postgresql", "awaitility"]
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }

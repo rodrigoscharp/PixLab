@@ -5,6 +5,15 @@ spring:
     url: jdbc:postgresql://localhost:${MERCHANT_DB_PORT:5435}/merchant
     username: pixlab
     password: pixlab
+  threads:
+    virtual:
+      enabled: true
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: pixlab
+    password: pixlab
+    publisher-confirm-type: simple
   mvc:
     problemdetails:
       enabled: true
@@ -28,3 +37,9 @@ pixlab:
     chave: recebedor@pixlab.dev
     webhook-url: http://localhost:${MERCHANT_PORT:8090}/webhook
     cob-expiracao: 1h
+  inbox:
+    workers: 4
+    idle: 100ms
+    max-attempts: 10
+    backoff-base: 200ms
+    backoff-max: 30s
