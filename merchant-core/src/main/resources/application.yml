@@ -5,6 +5,9 @@ spring:
     url: jdbc:postgresql://localhost:${MERCHANT_DB_PORT:5435}/merchant
     username: pixlab
     password: pixlab
+  mvc:
+    problemdetails:
+      enabled: true
   jpa:
     open-in-view: false
     hibernate:
@@ -18,3 +21,10 @@ management:
     web:
       exposure:
         include: health,info
+
+pixlab:
+  psp:
+    base-url: http://localhost:${PSP_PORT:8091}
+    chave: recebedor@pixlab.dev
+    webhook-url: http://localhost:${MERCHANT_PORT:8090}/webhook
+    cob-expiracao: 1h

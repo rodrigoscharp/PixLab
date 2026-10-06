@@ -4,4 +4,4 @@ plugins {
 
 rootProject.name = "pixlab"
 
-include("shared-contracts", "psp-simulator", "merchant-core")
+include("shared-contracts", "psp-simulator", "merchant-core", "e2e-tests")

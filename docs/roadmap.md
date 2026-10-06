@@ -5,7 +5,7 @@ Cada fase termina com algo **demonstrável** e um teste que prova o que foi feit
 | Fase | Entrega | Horas | Status |
 |---|---|---|---|
 | F0 | Fundação | 8 | ✅ |
-| F1 | Pix caminho feliz | 12 | ⬜ |
+| F1 | Pix caminho feliz | 12 | ✅ |
 | F2 | Idempotência | 10 | ⬜ |
 | F3 | Caos de entrega | 14 | ⬜ |
 | F4 | Devoluções e MED | 10 | ⬜ |

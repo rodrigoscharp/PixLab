@@ -5,6 +5,12 @@ spring:
     url: jdbc:postgresql://localhost:${PSP_DB_PORT:5434}/psp
     username: pixlab
     password: pixlab
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
   jpa:
     open-in-view: false
     hibernate:
@@ -18,3 +24,7 @@ management:
     web:
       exposure:
         include: health,info
+
+pixlab:
+  psp:
+    ispb: "12345678"

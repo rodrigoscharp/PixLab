@@ -31,7 +31,8 @@ class MerchantCoreApplicationTests {
     }
 
     @Test
-    void flywayAppliedBaseline() {
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
+    void flywayAppliedAllMigrations() {
+        assertThat(flyway.info().applied()).isNotEmpty();
+        assertThat(flyway.info().pending()).isEmpty();
     }
 }
