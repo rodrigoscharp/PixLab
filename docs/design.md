@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Autor** | Rodrigo Scharp |
-| **Status** | Rascunho v0.1 |
+| **Status** | v1.0 — implementado (F0–F8) |
 | **Data** | 2026-10-06 |
 | **Roadmap** | [roadmap.md](roadmap.md) |
 | **Decisões** | [adr/](adr/) |
